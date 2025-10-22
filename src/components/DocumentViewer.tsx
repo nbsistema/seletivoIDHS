@@ -67,19 +67,42 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
 
   const selectedDocument = availableDocs.find(d => d.key === selectedDoc);
 
-  const isJotformLink = (url?: string): boolean => {
-    if (!url) return false;
-    return url.includes('jotform.com') || url.includes('jfs.jotform.com');
+  const extractJotformId = (url?: string): string | null => {
+    if (!url) return null;
+    const match = url.match(/jotform\.com\/(\d+)/);
+    return match ? match[1] : null;
   };
 
   const getFileType = (url?: string): 'pdf' | 'image' | 'jotform' | 'unknown' => {
     if (!url) return 'unknown';
-    if (isJotformLink(url)) return 'jotform';
+    if (extractJotformId(url)) return 'jotform';
     const lower = url.toLowerCase();
     if (lower.includes('.pdf')) return 'pdf';
     if (lower.match(/\.(jpg|jpeg|png|gif|webp)/)) return 'image';
     return 'unknown';
   };
+
+  useEffect(() => {
+    if (fileType === 'jotform' && selectedDocument?.url) {
+      const jotformId = extractJotformId(selectedDocument.url);
+      if (jotformId) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        script.onload = () => {
+          if (window.jotformEmbedHandler) {
+            window.jotformEmbedHandler(`iframe[id='JotFormIFrame-${jotformId}']`, "https://form.jotform.com/");
+          }
+        };
+
+        return () => {
+          document.body.removeChild(script);
+        };
+      }
+    }
+  }, [fileType, selectedDocument?.url]);
 
   const fileType = getFileType(selectedDocument?.url);
 
@@ -138,22 +161,24 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
         {selectedDocument?.url ? (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
             {fileType === 'jotform' ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8">
-                <AlertCircle className="w-16 h-16 mb-4 text-blue-400" />
-                <p className="text-center mb-2 font-semibold text-lg">Documento do Jotform</p>
-                <p className="text-center mb-6 text-slate-500">
-                  Este documento está hospedado no Jotform e precisa ser aberto em uma nova aba
-                </p>
-                <a
-                  href={selectedDocument.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
-                >
-                  <ExternalLink className="w-5 h-5" />
-                  Abrir documento
-                </a>
-              </div>
+              <iframe
+                id={`JotFormIFrame-${extractJotformId(selectedDocument.url)}`}
+                title={selectedDocument.label}
+                onLoad={(e) => {
+                  const iframe = e.target as HTMLIFrameElement;
+                  if (window.parent) window.parent.scrollTo(0, 0);
+                }}
+                allow="geolocation; microphone; camera; fullscreen; payment"
+                src={selectedDocument.url}
+                className="w-full h-full border-none"
+                style={{
+                  minWidth: '100%',
+                  maxWidth: '100%',
+                  minHeight: '100%',
+                  border: 'none'
+                }}
+                scrolling="no"
+              />
             ) : fileType === 'pdf' ? (
               <iframe
                 src={`${selectedDocument.url}#view=FitH`}
