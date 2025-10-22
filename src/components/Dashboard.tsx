@@ -20,6 +20,7 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [filterArea, setFilterArea] = useState<string>('all');
   const [filterCargo, setFilterCargo] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<SessionMetrics>({
@@ -43,8 +44,17 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
       const cargoMatch = filterCargo === 'all' ||
         (candidate.area === 'Administrativa' && candidate.cargoAdministrativo === filterCargo) ||
         (candidate.area === 'Assistencial' && candidate.cargoAssistencial === filterCargo);
-      const notReviewed = !candidate.statusTriagem;
-      return areaMatch && cargoMatch && notReviewed;
+
+      let statusMatch = true;
+      if (filterStatus === 'pending') {
+        statusMatch = !candidate.statusTriagem || candidate.statusTriagem === '';
+      } else if (filterStatus === 'all') {
+        statusMatch = true;
+      } else {
+        statusMatch = candidate.statusTriagem === filterStatus;
+      }
+
+      return areaMatch && cargoMatch && statusMatch;
     });
     setFilteredCandidates(filtered);
 
@@ -52,7 +62,7 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
       setSelectedCandidate(filtered[0]);
       setReviewStartTime(Date.now());
     }
-  }, [candidates, filterArea, filterCargo]);
+  }, [candidates, filterArea, filterCargo, filterStatus]);
 
   const loadCandidates = async () => {
     try {
@@ -142,6 +152,82 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
     }
   };
 
+  const generateReport = () => {
+    const totalCandidates = candidates.length;
+    const classified = candidates.filter(c => c.statusTriagem === 'Classificado').length;
+    const disqualified = candidates.filter(c => c.statusTriagem === 'Desclassificado').length;
+    const review = candidates.filter(c => c.statusTriagem === 'Revisar').length;
+    const pending = candidates.filter(c => !c.statusTriagem || c.statusTriagem === '').length;
+
+    const byArea = {
+      Administrativa: candidates.filter(c => c.area === 'Administrativa').length,
+      Assistencial: candidates.filter(c => c.area === 'Assistencial').length
+    };
+
+    const classifiedByArea = {
+      Administrativa: candidates.filter(c => c.area === 'Administrativa' && c.statusTriagem === 'Classificado').length,
+      Assistencial: candidates.filter(c => c.area === 'Assistencial' && c.statusTriagem === 'Classificado').length
+    };
+
+    const reportText = `
+RELATÓRIO DE TRIAGEM DE CANDIDATOS
+====================================
+Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+Analista: ${analystEmail}
+
+RESUMO GERAL
+------------
+Total de candidatos: ${totalCandidates}
+Classificados: ${classified} (${((classified / totalCandidates) * 100).toFixed(1)}%)
+Desclassificados: ${disqualified} (${((disqualified / totalCandidates) * 100).toFixed(1)}%)
+Para revisar: ${review} (${((review / totalCandidates) * 100).toFixed(1)}%)
+Pendentes: ${pending} (${((pending / totalCandidates) * 100).toFixed(1)}%)
+
+POR ÁREA
+--------
+Administrativa: ${byArea.Administrativa} candidatos (${classifiedByArea.Administrativa} classificados)
+Assistencial: ${byArea.Assistencial} candidatos (${classifiedByArea.Assistencial} classificados)
+
+CANDIDATOS CLASSIFICADOS
+------------------------
+${candidates
+  .filter(c => c.statusTriagem === 'Classificado')
+  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
+  .join('\n')}
+
+CANDIDATOS DESCLASSIFICADOS
+---------------------------
+${candidates
+  .filter(c => c.statusTriagem === 'Desclassificado')
+  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
+  .join('\n')}
+
+CANDIDATOS PARA REVISAR
+-----------------------
+${candidates
+  .filter(c => c.statusTriagem === 'Revisar')
+  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
+  .join('\n')}
+
+CANDIDATOS PENDENTES
+--------------------
+${candidates
+  .filter(c => !c.statusTriagem || c.statusTriagem === '')
+  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
+  .join('\n')}
+`;
+
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-triagem-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -228,8 +314,10 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
             onSelectCandidate={handleSelectCandidate}
             filterArea={filterArea}
             filterCargo={filterCargo}
+            filterStatus={filterStatus}
             onFilterAreaChange={setFilterArea}
             onFilterCargoChange={setFilterCargo}
+            onFilterStatusChange={setFilterStatus}
           />
         </div>
 
@@ -255,6 +343,7 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
           onPrevious={moveToPreviousCandidate}
           onNext={moveToNextCandidate}
           onLogout={onLogout}
+          onGenerateReport={generateReport}
           hasPrevious={currentIndex > 0}
           hasNext={currentIndex < filteredCandidates.length - 1}
           currentIndex={currentIndex}

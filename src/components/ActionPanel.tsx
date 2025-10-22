@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight, LogOut, FileText } from 'lucide-react';
 
 interface ActionPanelProps {
   onClassify: () => void;
@@ -7,6 +7,7 @@ interface ActionPanelProps {
   onPrevious: () => void;
   onNext: () => void;
   onLogout: () => void;
+  onGenerateReport: () => void;
   hasPrevious: boolean;
   hasNext: boolean;
   currentIndex: number;
@@ -21,6 +22,7 @@ export default function ActionPanel({
   onPrevious,
   onNext,
   onLogout,
+  onGenerateReport,
   hasPrevious,
   hasNext,
   currentIndex,
@@ -98,6 +100,15 @@ export default function ActionPanel({
           </button>
 
           <div className="w-px h-8 bg-slate-300" />
+
+          <button
+            onClick={onGenerateReport}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            title="Gerar Relatório"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden lg:inline">Relatório</span>
+          </button>
 
           <button
             onClick={onLogout}

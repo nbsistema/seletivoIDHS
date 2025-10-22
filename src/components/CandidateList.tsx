@@ -7,8 +7,10 @@ interface CandidateListProps {
   onSelectCandidate: (candidate: Candidate) => void;
   filterArea: string;
   filterCargo: string;
+  filterStatus: string;
   onFilterAreaChange: (area: string) => void;
   onFilterCargoChange: (cargo: string) => void;
+  onFilterStatusChange: (status: string) => void;
 }
 
 export default function CandidateList({
@@ -17,8 +19,10 @@ export default function CandidateList({
   onSelectCandidate,
   filterArea,
   filterCargo,
+  filterStatus,
   onFilterAreaChange,
-  onFilterCargoChange
+  onFilterCargoChange,
+  onFilterStatusChange
 }: CandidateListProps) {
   const filteredCandidates = candidates.filter(candidate => {
     const areaMatch = filterArea === 'all' || candidate.area === filterArea;
@@ -97,6 +101,23 @@ export default function CandidateList({
               {cargos.map(cargo => (
                 <option key={cargo} value={cargo}>{cargo}</option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Status
+            </label>
+            <select
+              value={filterStatus}
+              onChange={(e) => onFilterStatusChange(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="pending">Pendentes</option>
+              <option value="all">Todos</option>
+              <option value="Classificado">Classificados</option>
+              <option value="Desclassificado">Desclassificados</option>
+              <option value="Revisar">Para Revisar</option>
             </select>
           </div>
         </div>

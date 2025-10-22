@@ -8,10 +8,20 @@ export interface ProcessedFile {
 export function parseFileUrls(urlString?: string): string[] {
   if (!urlString) return [];
 
-  return urlString
-    .split(/[\s,;]+/)
-    .map(url => url.trim())
-    .filter(url => url.length > 0);
+  const trimmed = urlString.trim();
+
+  const urlPattern = /(https?:\/\/[^\s,;]+)/g;
+  const matches = trimmed.match(urlPattern);
+
+  if (matches && matches.length > 0) {
+    return matches.map(url => url.trim());
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return [trimmed];
+  }
+
+  return [];
 }
 
 export function processJotformUrl(url: string): ProcessedFile {
