@@ -1,7 +1,6 @@
 import { Candidate } from '../types/candidate';
 
 const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID;
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
 let cachedAccessToken: string | null = null;
 
@@ -50,17 +49,21 @@ export async function fetchCandidates(): Promise<Candidate[]> {
     return [];
   }
 
-  if (!API_KEY || API_KEY === 'your_api_key_here') {
-    console.warn('Google API Key not configured. Please set VITE_GOOGLE_API_KEY in .env');
+  if (!cachedAccessToken) {
+    console.warn('No access token available. Please login first.');
     return [];
   }
 
   try {
     const range = 'A:Z';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
 
     console.log('Fetching candidates from Google Sheets...');
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${cachedAccessToken}`,
+      },
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -157,9 +160,13 @@ export async function updateCandidateStatus(
 
   try {
     const range = 'A:Z';
-    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
 
-    const readResponse = await fetch(readUrl);
+    const readResponse = await fetch(readUrl, {
+      headers: {
+        'Authorization': `Bearer ${cachedAccessToken}`,
+      },
+    });
     if (!readResponse.ok) {
       throw new Error(`Failed to read sheet: ${readResponse.statusText}`);
     }

@@ -57,24 +57,14 @@ Para usar o Client ID existente, você precisa garantir que:
 
 Este é um requisito do Google OAuth 2.0 para implicit flow com `response_type=token`.
 
-## Passo 4: Criar API Key
-
-1. No menu lateral, vá em "APIs & Services" > "Credentials"
-2. Clique em "CREATE CREDENTIALS" > "API key"
-3. Copie a API Key gerada
-4. (Recomendado) Clique em "RESTRICT KEY" e configure:
-   - Em "API restrictions", selecione "Restrict key"
-   - Marque apenas "Google Sheets API"
-   - Clique em "SAVE"
-
-## Passo 5: Obter ID da Planilha
+## Passo 4: Obter ID da Planilha
 
 1. Abra sua planilha do Google Sheets
 2. Na URL, copie o ID da planilha:
    - URL: `https://docs.google.com/spreadsheets/d/ID_DA_PLANILHA/edit`
    - Copie apenas o `ID_DA_PLANILHA`
 
-## Passo 6: Configurar Variáveis de Ambiente no Netlify
+## Passo 5: Configurar Variáveis de Ambiente no Netlify
 
 1. Acesse seu projeto no Netlify: https://app.netlify.com/
 2. Vá em "Site configuration" > "Environment variables"
@@ -82,9 +72,10 @@ Este é um requisito do Google OAuth 2.0 para implicit flow com `response_type=t
 
 ```
 VITE_GOOGLE_SHEETS_ID=ID_DA_SUA_PLANILHA
-VITE_GOOGLE_API_KEY=SUA_API_KEY
-VITE_GOOGLE_CLIENT_ID=SEU_CLIENT_ID.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=7946337108-ugfh3hq2goea4ujd12ronkh1u1cmjpbm.apps.googleusercontent.com
 ```
+
+**IMPORTANTE**: Não é mais necessária a API Key (VITE_GOOGLE_API_KEY). O sistema agora usa apenas OAuth para todas as operações.
 
 4. Clique em "Save"
 5. Faça um novo deploy do site

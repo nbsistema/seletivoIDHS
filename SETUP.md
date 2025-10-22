@@ -33,13 +33,7 @@ Sistema web de triagem de candidatos para hospitais, integrado com Google Sheets
 4. Adicione sua URL de origem (ex: http://localhost:5173)
 5. Copie o Client ID gerado
 
-### 3. Criar API Key
-
-1. No mesmo painel de credenciais, clique em "Create Credentials" > "API Key"
-2. Restrinja a API key para uso apenas com Google Sheets API
-3. Copie a API Key gerada
-
-### 4. Configurar Google Sheets
+### 3. Configurar Google Sheets
 
 1. Crie uma planilha no Google Sheets com as seguintes colunas (na ordem):
 
@@ -57,7 +51,7 @@ Sistema web de triagem de candidatos para hospitais, integrado com Google Sheets
    - Mude para "Qualquer pessoa com o link pode ver"
    - Copie o link
 
-### 5. Configurar Variáveis de Ambiente
+### 4. Configurar Variáveis de Ambiente
 
 Edite o arquivo `.env` na raiz do projeto:
 
@@ -66,17 +60,18 @@ VITE_SUPABASE_URL=https://hfgpyisqlfdgcdyagety.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 VITE_GOOGLE_CLIENT_ID=seu_client_id_aqui
-VITE_GOOGLE_API_KEY=sua_api_key_aqui
 VITE_GOOGLE_SHEETS_ID=id_da_planilha_aqui
 ```
 
-### 6. Instalar Dependências
+**IMPORTANTE**: Não é mais necessária a API Key. O sistema usa apenas OAuth para autenticação e acesso aos dados.
+
+### 5. Instalar Dependências
 
 ```bash
 npm install
 ```
 
-### 7. Executar o Projeto
+### 6. Executar o Projeto
 
 ```bash
 npm run dev
