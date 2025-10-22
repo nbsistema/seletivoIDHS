@@ -7,7 +7,8 @@ export default function StatsPanel() {
     total: 0,
     approved: 0,
     rejected: 0,
-    pending: 0
+    pending: 0,
+    revisar: 0 // Adicionei o status "revisar" que estava faltando
   });
   const [loading, setLoading] = useState(true);
 
@@ -17,8 +18,19 @@ export default function StatsPanel() {
 
   const loadStats = async () => {
     try {
-      const data = await candidateService.getStatistics();
-      setStats(data);
+      // Carrega todos os candidatos com seus status persistidos
+      const candidates = await candidateService.getCandidates();
+      
+      // Calcula as estatísticas baseadas nos status salvos
+      const statistics = {
+        total: candidates.length,
+        approved: candidates.filter(c => c.status === 'Aprovado').length,
+        rejected: candidates.filter(c => c.status === 'Reprovado').length,
+        pending: candidates.filter(c => c.status === 'pending' || !c.status).length,
+        revisar: candidates.filter(c => c.status === 'Revisar').length
+      };
+      
+      setStats(statistics);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     } finally {
@@ -33,7 +45,7 @@ export default function StatsPanel() {
 
   const getProgressPercentage = () => {
     if (stats.total === 0) return 0;
-    const reviewed = stats.approved + stats.rejected;
+    const reviewed = stats.approved + stats.rejected + stats.revisar;
     return Math.round((reviewed / stats.total) * 100);
   };
 
@@ -45,6 +57,7 @@ export default function StatsPanel() {
           <div className="h-20 bg-slate-200 rounded-lg flex-1"></div>
           <div className="h-20 bg-slate-200 rounded-lg flex-1"></div>
           <div className="h-20 bg-slate-200 rounded-lg flex-1"></div>
+          <div className="h-20 bg-slate-200 rounded-lg flex-1"></div>
         </div>
       </div>
     );
@@ -52,7 +65,8 @@ export default function StatsPanel() {
 
   return (
     <div className="bg-white border-b border-slate-200 p-4">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4"> {/* Mudei para 5 colunas */}
+        {/* Total */}
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-blue-800">Total</span>
@@ -73,6 +87,7 @@ export default function StatsPanel() {
           </div>
         </div>
 
+        {/* Aprovados */}
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-green-800">Aprovados</span>
@@ -84,6 +99,7 @@ export default function StatsPanel() {
           </p>
         </div>
 
+        {/* Reprovados */}
         <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-red-800">Reprovados</span>
@@ -95,6 +111,19 @@ export default function StatsPanel() {
           </p>
         </div>
 
+        {/* Revisar */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-purple-800">Revisar</span>
+            <Clock className="w-5 h-5 text-purple-600" />
+          </div>
+          <p className="text-3xl font-bold text-purple-900">{stats.revisar.toLocaleString()}</p>
+          <p className="text-xs text-purple-700 mt-2">
+            {getPercentage(stats.revisar)}% do total
+          </p>
+        </div>
+
+        {/* Pendentes */}
         <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-amber-800">Pendentes</span>
