@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
-import Dashboard from './components/Dashboard';
+import PaginatedDashboard from './components/PaginatedDashboard';
 import { setAccessToken } from './services/googleSheets';
 import { createSession, endSession } from './services/sessionService';
 
@@ -89,7 +89,7 @@ function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return <Dashboard sessionId={sessionId} analystEmail={userEmail} onLogout={handleLogout} />;
+  return <PaginatedDashboard sessionId={sessionId} analystEmail={userEmail} onLogout={handleLogout} />;
 }
 
 export default App;
