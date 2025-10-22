@@ -88,20 +88,28 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
     if (fileType === 'jotform' && selectedDocument?.url) {
       const jotformId = extractJotformId(selectedDocument.url);
       if (jotformId) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
-        script.async = true;
-        document.body.appendChild(script);
+        const scriptId = 'jotform-embed-handler';
+        let existingScript = document.getElementById(scriptId);
 
-        script.onload = () => {
-          if (window.jotformEmbedHandler) {
-            window.jotformEmbedHandler(`iframe[id='JotFormIFrame-${jotformId}']`, "https://form.jotform.com/");
+        const initializeHandler = () => {
+          if ((window as any).jotformEmbedHandler) {
+            (window as any).jotformEmbedHandler(
+              `iframe[id='JotFormIFrame-${jotformId}']`,
+              "https://form.jotform.com/"
+            );
           }
         };
 
-        return () => {
-          document.body.removeChild(script);
-        };
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.id = scriptId;
+          script.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
+          script.async = true;
+          script.onload = initializeHandler;
+          document.body.appendChild(script);
+        } else {
+          initializeHandler();
+        }
       }
     }
   }, [fileType, selectedDocument?.url]);
@@ -164,20 +172,20 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
               <iframe
                 id={`JotFormIFrame-${extractJotformId(selectedDocument.url)}`}
                 title={selectedDocument.label}
-                onLoad={(e) => {
-                  const iframe = e.target as HTMLIFrameElement;
+                onLoad={() => {
                   if (window.parent) window.parent.scrollTo(0, 0);
                 }}
+                allowTransparency={true}
                 allow="geolocation; microphone; camera; fullscreen; payment"
                 src={selectedDocument.url}
-                className="w-full h-full border-none"
+                className="w-full h-full"
                 style={{
                   minWidth: '100%',
                   maxWidth: '100%',
-                  minHeight: '100%',
+                  height: '100%',
+                  minHeight: '539px',
                   border: 'none'
                 }}
-                scrolling="no"
               />
             ) : fileType === 'pdf' ? (
               <iframe
