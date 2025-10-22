@@ -36,19 +36,24 @@
 
 ### Criar Client ID OAuth
 
-1. No menu lateral, vá em "APIs & Services" > "Credentials"
-2. Clique em "CREATE CREDENTIALS" > "OAuth client ID"
-3. Selecione "Web application"
-4. Configure:
-   - **Name**: Sistema de Triagem Web Client
+**JÁ EXISTE UM CLIENT ID CONFIGURADO**: `7946337108-ugfh3hq2goea4ujd12ronkh1u1cmjpbm.apps.googleusercontent.com`
+
+Para usar o Client ID existente, você precisa garantir que:
+
+1. No Google Cloud Console, vá em "APIs & Services" > "Credentials"
+2. Encontre o Client ID: `7946337108-ugfh3hq2goea4ujd12ronkh1u1cmjpbm`
+3. Clique para editar e verifique se contém:
    - **Authorized JavaScript origins**:
      - `https://seletivo.netlify.app`
      - `http://localhost:5173` (para desenvolvimento local)
    - **Authorized redirect URIs**:
      - `https://seletivo.netlify.app`
      - `http://localhost:5173` (para desenvolvimento local)
-5. Clique em "CREATE"
-6. **IMPORTANTE**: Copie o **Client ID** que aparecerá (você precisará dele)
+4. Se não estiverem configurados, adicione-os e clique em "SAVE"
+
+**IMPORTANTE**: NÃO adicione `/callback` ou qualquer outro path aos URIs de redirecionamento. Use apenas:
+- `https://seletivo.netlify.app` (sem barra no final)
+- `http://localhost:5173` (sem barra no final)
 
 ## Passo 4: Criar API Key
 

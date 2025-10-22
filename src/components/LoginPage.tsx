@@ -27,7 +27,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         `client_id=${encodeURIComponent(clientId)}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `response_type=token&` +
-        `scope=${encodeURIComponent(scope)}`;
+        `scope=${encodeURIComponent(scope)}&` +
+        `include_granted_scopes=true`;
 
       window.location.href = authUrl;
     } catch (err) {
