@@ -82,6 +82,8 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
     return 'unknown';
   };
 
+  const fileType = getFileType(selectedDocument?.url);
+
   useEffect(() => {
     if (fileType === 'jotform' && selectedDocument?.url) {
       const jotformId = extractJotformId(selectedDocument.url);
@@ -103,8 +105,6 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
       }
     }
   }, [fileType, selectedDocument?.url]);
-
-  const fileType = getFileType(selectedDocument?.url);
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
