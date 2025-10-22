@@ -46,9 +46,13 @@ function App() {
         if (newSessionId) {
           setSessionId(newSessionId);
         }
+      } else {
+        console.error('Failed to fetch user info:', response.status);
+        setAccessTokenState(null);
       }
     } catch (error) {
       console.error('Error fetching user email:', error);
+      setAccessTokenState(null);
     } finally {
       setLoading(false);
     }

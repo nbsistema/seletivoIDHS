@@ -60,9 +60,14 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
       setError(null);
       const data = await fetchCandidates();
       setCandidates(data);
+
+      if (data.length === 0) {
+        setError('Nenhum candidato encontrado. Verifique se a planilha está configurada corretamente.');
+      }
     } catch (err) {
-      setError('Erro ao carregar candidatos. Verifique as configurações do Google Sheets.');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      console.error('Error loading candidates:', err);
     } finally {
       setLoading(false);
     }

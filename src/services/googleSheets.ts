@@ -45,11 +45,13 @@ async function updateSheet(range: string, values: any[][]): Promise<boolean> {
 }
 
 export async function fetchCandidates(): Promise<Candidate[]> {
-  if (!SPREADSHEET_ID || !API_KEY) {
-    console.error('Missing environment variables:', {
-      VITE_GOOGLE_SHEETS_ID: SPREADSHEET_ID ? 'OK' : 'MISSING',
-      VITE_GOOGLE_API_KEY: API_KEY ? 'OK' : 'MISSING'
-    });
+  if (!SPREADSHEET_ID || SPREADSHEET_ID === 'your_spreadsheet_id_here') {
+    console.warn('Google Sheets ID not configured. Please set VITE_GOOGLE_SHEETS_ID in .env');
+    return [];
+  }
+
+  if (!API_KEY || API_KEY === 'your_api_key_here') {
+    console.warn('Google API Key not configured. Please set VITE_GOOGLE_API_KEY in .env');
     return [];
   }
 
@@ -61,8 +63,16 @@ export async function fetchCandidates(): Promise<Candidate[]> {
     const response = await fetch(url);
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       console.error('Google Sheets API error:', errorData);
+
+      if (response.status === 403) {
+        throw new Error('Acesso negado. Verifique se a API Key está correta e se a Google Sheets API está habilitada.');
+      }
+      if (response.status === 404) {
+        throw new Error('Planilha não encontrada. Verifique o ID da planilha.');
+      }
+
       throw new Error(`API Error: ${response.status} - ${response.statusText}`);
     }
 
@@ -121,6 +131,10 @@ export async function fetchCandidates(): Promise<Candidate[]> {
     console.log(`${candidates.length} candidates loaded successfully`);
     return candidates;
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Erro de rede ao conectar com Google Sheets. Verifique sua conexão.');
+      throw new Error('Erro de conexão. Verifique sua internet e as configurações do Google Sheets.');
+    }
     console.error('Critical error fetching candidates:', error);
     throw error;
   }
