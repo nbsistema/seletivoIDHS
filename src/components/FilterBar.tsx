@@ -11,6 +11,28 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
+  const handleFilterChange = (key: string, value: any) => {
+    onFilterChange({
+      ...filters,
+      [key]: value
+    });
+  };
+
+  const handleClearFilters = () => {
+    onFilterChange({
+      status: 'pending',
+      area: '',
+      flagged: undefined,
+      search: ''
+    });
+  };
+
+  const hasActiveFilters = 
+    filters.status !== 'pending' || 
+    filters.area !== '' || 
+    filters.search !== '' || 
+    filters.flagged !== undefined;
+
   return (
     <div className="bg-white border-b border-slate-200 p-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -25,14 +47,14 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
             type="text"
             placeholder="Buscar por nome ou número..."
             value={filters.search}
-            onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
 
         <select
           value={filters.status}
-          onChange={(e) => onFilterChange({ ...filters, status: e.target.value })}
+          onChange={(e) => handleFilterChange('status', e.target.value)}
           className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
         >
           <option value="pending">Pendentes</option>
@@ -43,7 +65,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
 
         <select
           value={filters.area}
-          onChange={(e) => onFilterChange({ ...filters, area: e.target.value })}
+          onChange={(e) => handleFilterChange('area', e.target.value)}
           className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
         >
           <option value="">Todas as áreas</option>
@@ -53,12 +75,10 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
 
         <select
           value={filters.flagged === undefined ? 'all' : filters.flagged ? 'true' : 'false'}
-          onChange={(e) =>
-            onFilterChange({
-              ...filters,
-              flagged: e.target.value === 'all' ? undefined : e.target.value === 'true'
-            })
-          }
+          onChange={(e) => {
+            const value = e.target.value === 'all' ? undefined : e.target.value === 'true';
+            handleFilterChange('flagged', value);
+          }}
           className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
         >
           <option value="all">Marcados/Não marcados</option>
@@ -66,16 +86,9 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           <option value="false">Apenas não marcados</option>
         </select>
 
-        {(filters.status !== 'pending' || filters.area || filters.search || filters.flagged !== undefined) && (
+        {hasActiveFilters && (
           <button
-            onClick={() =>
-              onFilterChange({
-                status: 'pending',
-                area: '',
-                flagged: undefined,
-                search: ''
-              })
-            }
+            onClick={handleClearFilters}
             className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             Limpar filtros
