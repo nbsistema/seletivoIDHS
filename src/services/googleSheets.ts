@@ -19,6 +19,7 @@ function extractSpreadsheetId(input: string | undefined): string | undefined {
 const SPREADSHEET_ID = extractSpreadsheetId(import.meta.env.VITE_GOOGLE_SHEETS_ID);
 
 let cachedAccessToken: string | null = null;
+let cachedSheetName: string | null = null;
 
 export function setAccessToken(token: string) {
   cachedAccessToken = token;
@@ -26,6 +27,34 @@ export function setAccessToken(token: string) {
 
 export function getAccessToken(): string | null {
   return cachedAccessToken;
+}
+
+async function getFirstSheetName(): Promise<string | null> {
+  if (cachedSheetName) return cachedSheetName;
+
+  if (!SPREADSHEET_ID || !cachedAccessToken) return null;
+
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties.title`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${cachedAccessToken}`,
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data.sheets && data.sheets.length > 0) {
+      cachedSheetName = data.sheets[0].properties.title;
+      console.log('First sheet name:', cachedSheetName);
+      return cachedSheetName;
+    }
+  } catch (error) {
+    console.error('Error getting sheet name:', error);
+  }
+
+  return null;
 }
 
 async function updateSheet(range: string, values: any[][]): Promise<boolean> {
@@ -74,20 +103,30 @@ export async function fetchCandidates(): Promise<Candidate[]> {
   }
 
   try {
-    // Tenta primeiro buscar da aba "Respostas ao formulário 1" (nome padrão do Google Forms)
-    let range = 'Respostas ao formulário 1!A:Z';
-    let url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
-
     console.log('Fetching candidates from Google Sheets...');
+
+    // Primeiro tenta obter o nome real da primeira aba
+    const sheetName = await getFirstSheetName();
+
+    let range = 'A:Z';
+    let url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+
+    // Se conseguiu o nome da aba, usa ele
+    if (sheetName) {
+      range = `${sheetName}!A:Z`;
+      url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+      console.log('Using sheet:', sheetName);
+    }
+
     let response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${cachedAccessToken}`,
       },
     });
 
-    // Se não encontrar, tenta a primeira aba sem nome específico
-    if (!response.ok && response.status === 400) {
-      console.log('Trying default sheet range...');
+    // Se falhar e tinha nome da aba, tenta sem nome
+    if (!response.ok && response.status === 400 && sheetName) {
+      console.log('Trying without sheet name...');
       range = 'A:Z';
       url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
       response = await fetch(url, {
@@ -191,9 +230,16 @@ export async function updateCandidateStatus(
   }
 
   try {
-    // Tenta primeiro buscar da aba "Respostas ao formulário 1"
-    let range = 'Respostas ao formulário 1!A:Z';
-    let readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+    // Obtém o nome da primeira aba
+    const sheetName = await getFirstSheetName();
+
+    let range = 'A:Z';
+    let readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+
+    if (sheetName) {
+      range = `${sheetName}!A:Z`;
+      readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+    }
 
     let readResponse = await fetch(readUrl, {
       headers: {
@@ -201,8 +247,8 @@ export async function updateCandidateStatus(
       },
     });
 
-    // Se não encontrar, tenta a primeira aba sem nome específico
-    if (!readResponse.ok && readResponse.status === 400) {
+    // Se falhar e tinha nome da aba, tenta sem nome
+    if (!readResponse.ok && readResponse.status === 400 && sheetName) {
       range = 'A:Z';
       readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
       readResponse = await fetch(readUrl, {
