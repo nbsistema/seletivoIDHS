@@ -4,11 +4,6 @@ import Dashboard from './components/Dashboard';
 import { setAccessToken } from './services/googleSheets';
 import { createSession, endSession } from './services/sessionService';
 
-
-const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID;
-const API_KEY  = import.meta.env.VITE_GOOGLE_API_KEY;
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
 function App() {
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -66,10 +61,10 @@ function App() {
 
   const handleLogout = async () => {
     if (sessionId) {
-      await endSession(sessionId);
+      await endSession(sessionId, 0);
     }
 
-    setAccessToken(null);
+    setAccessToken('');
     setAccessTokenState(null);
     setUserEmail(null);
     setSessionId(null);
@@ -80,7 +75,7 @@ function App() {
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Carregando...</p>
+          <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     );
