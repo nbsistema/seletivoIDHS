@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Candidate } from '../types/candidate';
-import { processMultipleUrls, ProcessedFile } from '../services/jotformService';
+import { processMultipleUrls } from '../services/jotformService';
 import {
   FileText,
   GraduationCap,
@@ -8,11 +8,7 @@ import {
   Award,
   FolderOpen,
   ExternalLink,
-  AlertCircle,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Download
+  AlertCircle
 } from 'lucide-react';
 
 interface DocumentViewerProps {
@@ -31,9 +27,6 @@ interface Document {
 
 export default function DocumentViewer({ candidate, onFocusDocument }: DocumentViewerProps) {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const [zoom, setZoom] = useState(100);
-  const [rotation, setRotation] = useState(0);
 
   const documents: Document[] = candidate.area === 'Administrativa'
     ? [
@@ -59,11 +52,6 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
     }
   }, [candidate.registrationNumber]);
 
-  useEffect(() => {
-    setZoom(100);
-    setRotation(0);
-    setSelectedFileIndex(0);
-  }, [selectedDoc]);
 
   const handleDocumentSelect = (docKey: string) => {
     setSelectedDoc(docKey);
@@ -71,42 +59,13 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
   };
 
   const selectedDocument = availableDocs.find(d => d.key === selectedDoc);
-
   const processedFiles = processMultipleUrls(selectedDocument?.url);
-  const currentFile = processedFiles[selectedFileIndex] || processedFiles[0];
-  const fileType = currentFile?.type || 'unknown';
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <div className="p-4 bg-white border-b border-slate-200">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3">
           <h2 className="text-lg font-bold text-slate-800">Documentos</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setZoom(Math.max(50, zoom - 25))}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              title="Diminuir zoom"
-            >
-              <ZoomOut className="w-4 h-4 text-slate-600" />
-            </button>
-            <span className="text-sm text-slate-600 font-medium w-16 text-center">
-              {zoom}%
-            </span>
-            <button
-              onClick={() => setZoom(Math.min(200, zoom + 25))}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              title="Aumentar zoom"
-            >
-              <ZoomIn className="w-4 h-4 text-slate-600" />
-            </button>
-            <button
-              onClick={() => setRotation((rotation + 90) % 360)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              title="Rotacionar"
-            >
-              <RotateCw className="w-4 h-4 text-slate-600" />
-            </button>
-          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -130,113 +89,86 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
       <div className="flex-1 overflow-auto p-4">
         {selectedDocument?.url ? (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
-            {processedFiles.length > 1 && (
-              <div className="flex gap-2 p-3 bg-slate-100 border-b border-slate-200 overflow-x-auto">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                {selectedDocument.icon}
+                <h3 className="text-xl font-bold text-slate-800">{selectedDocument.label}</h3>
+              </div>
+
+              <div className="space-y-3">
                 {processedFiles.map((file, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    onClick={() => setSelectedFileIndex(idx)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                      selectedFileIndex === idx
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-300'
-                    }`}
+                    className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors"
                   >
-                    {file.type === 'pdf' && <FileText className="w-4 h-4" />}
-                    {file.type === 'image' && <Award className="w-4 h-4" />}
-                    {file.type === 'jotform' && <ExternalLink className="w-4 h-4" />}
-                    Arquivo {idx + 1}
-                  </button>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {file.type === 'pdf' && <FileText className="w-5 h-5 text-blue-600" />}
+                        {file.type === 'image' && <Award className="w-5 h-5 text-green-600" />}
+                        {file.type === 'jotform' && <ExternalLink className="w-5 h-5 text-purple-600" />}
+                        {file.type === 'unknown' && <FolderOpen className="w-5 h-5 text-slate-600" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {processedFiles.length > 1 ? `Arquivo ${idx + 1}` : 'Link do documento'}
+                          </span>
+                          {file.type === 'pdf' && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">PDF</span>
+                          )}
+                          {file.type === 'image' && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Imagem</span>
+                          )}
+                          {file.type === 'jotform' && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">Jotform</span>
+                          )}
+                        </div>
+                        <div className="bg-white p-3 rounded border border-slate-200 mb-3">
+                          <a
+                            href={file.displayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all font-mono"
+                          >
+                            {file.displayUrl}
+                          </a>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href={file.displayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Abrir link
+                          </a>
+                          {file.type !== 'jotform' && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(file.displayUrl);
+                                alert('Link copiado!');
+                              }}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Copiar link
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            )}
-            {fileType === 'jotform' && !currentFile?.isViewable ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8 bg-gradient-to-br from-blue-50 to-slate-50">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
-                    <ExternalLink className="w-10 h-10 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedDocument.label}</h3>
-                  <p className="text-slate-600 mb-2 text-sm">
-                    Link de submissão do Jotform
-                  </p>
-                  <p className="text-slate-500 mb-6 text-xs">
-                    Este é um link para a página de submissão. Clique para abrir em nova aba.
-                  </p>
-                  <a
-                    href={currentFile?.displayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-3 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                    Abrir submissão
-                  </a>
+
+              {processedFiles.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <p>Nenhum link encontrado</p>
                 </div>
-              </div>
-            ) : fileType === 'pdf' ? (
-              <iframe
-                src={`${currentFile?.displayUrl}#view=FitH`}
-                className="w-full h-full"
-                title={selectedDocument.label}
-                style={{
-                  transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
-                  transformOrigin: 'top left',
-                  width: `${100 / (zoom / 100)}%`,
-                  height: `${100 / (zoom / 100)}%`
-                }}
-              />
-            ) : fileType === 'image' ? (
-              <div className="flex items-center justify-center h-full p-4 bg-slate-100">
-                <img
-                  src={currentFile?.displayUrl}
-                  alt={selectedDocument.label}
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
-                    transition: 'transform 0.2s'
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement!.innerHTML = `
-                      <div class="text-center text-slate-600">
-                        <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-200 rounded-full mb-3">
-                          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                        </div>
-                        <p class="text-sm font-medium">Erro ao carregar imagem</p>
-                      </div>
-                    `;
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8">
-                <AlertCircle className="w-16 h-16 mb-4 text-slate-400" />
-                <p className="text-center mb-4">Formato de arquivo não suportado para visualização</p>
-                <div className="flex gap-3">
-                  <a
-                    href={currentFile?.displayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Abrir em nova aba
-                  </a>
-                  <a
-                    href={currentFile?.url}
-                    download
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Baixar arquivo
-                  </a>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full bg-white rounded-lg shadow-lg">
