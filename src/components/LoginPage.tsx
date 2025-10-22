@@ -20,15 +20,17 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error('Google Client ID não configurado');
       }
 
-      const redirectUri = window.location.origin;
+      const redirectUri = `${window.location.origin}/`;
       const scope = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `response_type=token&` +
-        `scope=${encodeURIComponent(scope)}&` +
-        `include_granted_scopes=true`;
+        `scope=${encodeURIComponent(scope)}`;
+
+      console.log('Auth URL:', authUrl);
+      console.log('Redirect URI:', redirectUri);
 
       window.location.href = authUrl;
     } catch (err) {

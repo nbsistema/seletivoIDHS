@@ -47,13 +47,15 @@ Para usar o Client ID existente, você precisa garantir que:
      - `https://seletivo.netlify.app`
      - `http://localhost:5173` (para desenvolvimento local)
    - **Authorized redirect URIs**:
-     - `https://seletivo.netlify.app`
-     - `http://localhost:5173` (para desenvolvimento local)
+     - `https://seletivo.netlify.app/`
+     - `http://localhost:5173/` (para desenvolvimento local)
 4. Se não estiverem configurados, adicione-os e clique em "SAVE"
 
-**IMPORTANTE**: NÃO adicione `/callback` ou qualquer outro path aos URIs de redirecionamento. Use apenas:
-- `https://seletivo.netlify.app` (sem barra no final)
-- `http://localhost:5173` (sem barra no final)
+**IMPORTANTE CRÍTICO**: Os URIs de redirecionamento DEVEM terminar com `/`:
+- `https://seletivo.netlify.app/` (COM barra no final)
+- `http://localhost:5173/` (COM barra no final)
+
+Este é um requisito do Google OAuth 2.0 para implicit flow com `response_type=token`.
 
 ## Passo 4: Criar API Key
 
