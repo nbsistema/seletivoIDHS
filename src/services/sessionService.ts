@@ -1,4 +1,4 @@
-import { SessionMetrics } from '../types/candidate';
+import { SessionMetrics, Candidate } from '../types/candidate';
 
 const sessions = new Map<string, {
   analystEmail: string;
@@ -8,6 +8,12 @@ const sessions = new Map<string, {
     duration: number;
   }>;
 }>();
+
+let candidatesCache: Candidate[] = [];
+
+export function setCandidatesForMetrics(candidates: Candidate[]) {
+  candidatesCache = candidates;
+}
 
 export async function createSession(analystEmail: string): Promise<string | null> {
   const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -46,24 +52,16 @@ export async function createReview(
 export async function getSessionMetrics(sessionId: string): Promise<SessionMetrics | null> {
   const session = sessions.get(sessionId);
 
-  if (!session) {
-    return {
-      totalReviewed: 0,
-      averageTimePerCandidate: 0,
-      classified: 0,
-      disqualified: 0,
-      review: 0
-    };
+  const classified = candidatesCache.filter(c => c.statusTriagem === 'Classificado').length;
+  const disqualified = candidatesCache.filter(c => c.statusTriagem === 'Desclassificado').length;
+  const review = candidatesCache.filter(c => c.statusTriagem === 'Revisar').length;
+  const totalReviewed = classified + disqualified + review;
+
+  let averageTimePerCandidate = 0;
+  if (session && session.reviews.length > 0) {
+    const totalDuration = session.reviews.reduce((sum, r) => sum + r.duration, 0);
+    averageTimePerCandidate = Math.round(totalDuration / session.reviews.length);
   }
-
-  const reviews = session.reviews;
-  const totalReviewed = reviews.length;
-  const totalDuration = reviews.reduce((sum, review) => sum + review.duration, 0);
-  const averageTimePerCandidate = totalReviewed > 0 ? Math.round(totalDuration / totalReviewed) : 0;
-
-  const classified = reviews.filter(r => r.status === 'Classificado').length;
-  const disqualified = reviews.filter(r => r.status === 'Desclassificado').length;
-  const review = reviews.filter(r => r.status === 'Revisar').length;
 
   return {
     totalReviewed,

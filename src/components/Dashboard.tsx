@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { Candidate, SessionMetrics } from '../types/candidate';
 import { fetchCandidates, updateCandidateStatus } from '../services/googleSheets';
-import { createReview, getSessionMetrics } from '../services/sessionService';
+import { createReview, getSessionMetrics, setCandidatesForMetrics } from '../services/sessionService';
 import CandidateList from './CandidateList';
 import DocumentViewer from './DocumentViewer';
 import MetricsPanel from './MetricsPanel';
 import ActionPanel from './ActionPanel';
+import ReportModal from './ReportModal';
+import {
+  generateGeneralReportHTML,
+  generateClassifiedReportHTML,
+  generateDisqualifiedReportHTML,
+  openReportInNewWindow
+} from '../services/reportService';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 
 interface DashboardProps {
@@ -23,6 +30,7 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
   const [filterStatus, setFilterStatus] = useState<string>('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [metrics, setMetrics] = useState<SessionMetrics>({
     totalReviewed: 0,
     averageTimePerCandidate: 0,
@@ -70,6 +78,7 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
       setError(null);
       const data = await fetchCandidates();
       setCandidates(data);
+      setCandidatesForMetrics(data);
 
       if (data.length === 0) {
         setError('Nenhum candidato encontrado. Verifique se a planilha está configurada corretamente.');
@@ -152,80 +161,23 @@ export default function Dashboard({ sessionId, analystEmail, onLogout }: Dashboa
     }
   };
 
-  const generateReport = () => {
-    const totalCandidates = candidates.length;
-    const classified = candidates.filter(c => c.statusTriagem === 'Classificado').length;
-    const disqualified = candidates.filter(c => c.statusTriagem === 'Desclassificado').length;
-    const review = candidates.filter(c => c.statusTriagem === 'Revisar').length;
-    const pending = candidates.filter(c => !c.statusTriagem || c.statusTriagem === '').length;
+  const handleOpenReportModal = () => {
+    setShowReportModal(true);
+  };
 
-    const byArea = {
-      Administrativa: candidates.filter(c => c.area === 'Administrativa').length,
-      Assistencial: candidates.filter(c => c.area === 'Assistencial').length
-    };
+  const handleGenerateGeneralReport = () => {
+    const html = generateGeneralReportHTML(candidates, analystEmail);
+    openReportInNewWindow(html);
+  };
 
-    const classifiedByArea = {
-      Administrativa: candidates.filter(c => c.area === 'Administrativa' && c.statusTriagem === 'Classificado').length,
-      Assistencial: candidates.filter(c => c.area === 'Assistencial' && c.statusTriagem === 'Classificado').length
-    };
+  const handleGenerateClassifiedReport = () => {
+    const html = generateClassifiedReportHTML(candidates, analystEmail);
+    openReportInNewWindow(html);
+  };
 
-    const reportText = `
-RELATÓRIO DE TRIAGEM DE CANDIDATOS
-====================================
-Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
-Analista: ${analystEmail}
-
-RESUMO GERAL
-------------
-Total de candidatos: ${totalCandidates}
-Classificados: ${classified} (${((classified / totalCandidates) * 100).toFixed(1)}%)
-Desclassificados: ${disqualified} (${((disqualified / totalCandidates) * 100).toFixed(1)}%)
-Para revisar: ${review} (${((review / totalCandidates) * 100).toFixed(1)}%)
-Pendentes: ${pending} (${((pending / totalCandidates) * 100).toFixed(1)}%)
-
-POR ÁREA
---------
-Administrativa: ${byArea.Administrativa} candidatos (${classifiedByArea.Administrativa} classificados)
-Assistencial: ${byArea.Assistencial} candidatos (${classifiedByArea.Assistencial} classificados)
-
-CANDIDATOS CLASSIFICADOS
-------------------------
-${candidates
-  .filter(c => c.statusTriagem === 'Classificado')
-  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
-  .join('\n')}
-
-CANDIDATOS DESCLASSIFICADOS
----------------------------
-${candidates
-  .filter(c => c.statusTriagem === 'Desclassificado')
-  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
-  .join('\n')}
-
-CANDIDATOS PARA REVISAR
------------------------
-${candidates
-  .filter(c => c.statusTriagem === 'Revisar')
-  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
-  .join('\n')}
-
-CANDIDATOS PENDENTES
---------------------
-${candidates
-  .filter(c => !c.statusTriagem || c.statusTriagem === '')
-  .map(c => `${c.name} - ${c.area} - ${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial} - Registro: ${c.registrationNumber}`)
-  .join('\n')}
-`;
-
-    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `relatorio-triagem-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleGenerateDisqualifiedReport = () => {
+    const html = generateDisqualifiedReportHTML(candidates, analystEmail);
+    openReportInNewWindow(html);
   };
 
   useEffect(() => {
@@ -343,7 +295,7 @@ ${candidates
           onPrevious={moveToPreviousCandidate}
           onNext={moveToNextCandidate}
           onLogout={onLogout}
-          onGenerateReport={generateReport}
+          onGenerateReport={handleOpenReportModal}
           hasPrevious={currentIndex > 0}
           hasNext={currentIndex < filteredCandidates.length - 1}
           currentIndex={currentIndex}
@@ -351,6 +303,14 @@ ${candidates
           analystEmail={analystEmail}
         />
       )}
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onGenerateGeneralReport={handleGenerateGeneralReport}
+        onGenerateClassifiedReport={handleGenerateClassifiedReport}
+        onGenerateDisqualifiedReport={handleGenerateDisqualifiedReport}
+      />
     </div>
   );
 }
