@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Candidate } from '../types/candidate';
+import { processMultipleUrls, ProcessedFile } from '../services/jotformService';
 import {
   FileText,
   GraduationCap,
@@ -10,7 +11,8 @@ import {
   AlertCircle,
   ZoomIn,
   ZoomOut,
-  RotateCw
+  RotateCw,
+  Download
 } from 'lucide-react';
 
 interface DocumentViewerProps {
@@ -26,11 +28,6 @@ interface Document {
   isPrimary?: boolean;
 }
 
-interface FileItem {
-  url: string;
-  index: number;
-  type: 'pdf' | 'image' | 'jotform' | 'unknown';
-}
 
 export default function DocumentViewer({ candidate, onFocusDocument }: DocumentViewerProps) {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
@@ -75,36 +72,9 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
 
   const selectedDocument = availableDocs.find(d => d.key === selectedDoc);
 
-  const parseMultipleUrls = (urlString?: string): string[] => {
-    if (!urlString) return [];
-    return urlString.split(/[\s,;]+/).filter(url => url.trim().length > 0);
-  };
-
-  const extractJotformId = (url?: string): string | null => {
-    if (!url) return null;
-    const match = url.match(/jotform\.com\/(\d+)/);
-    return match ? match[1] : null;
-  };
-
-  const getFileType = (url?: string): 'pdf' | 'image' | 'jotform' | 'unknown' => {
-    if (!url) return 'unknown';
-    if (extractJotformId(url)) return 'jotform';
-    const lower = url.toLowerCase();
-    if (lower.includes('.pdf')) return 'pdf';
-    if (lower.match(/\.(jpg|jpeg|png|gif|webp)/)) return 'image';
-    return 'unknown';
-  };
-
-  const currentUrls = parseMultipleUrls(selectedDocument?.url);
-  const currentUrl = currentUrls[selectedFileIndex] || currentUrls[0];
-
-  const fileItems: FileItem[] = currentUrls.map((url, index) => ({
-    url,
-    index,
-    type: getFileType(url)
-  }));
-
-  const fileType = getFileType(currentUrl);
+  const processedFiles = processMultipleUrls(selectedDocument?.url);
+  const currentFile = processedFiles[selectedFileIndex] || processedFiles[0];
+  const fileType = currentFile?.type || 'unknown';
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -160,47 +130,53 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
       <div className="flex-1 overflow-auto p-4">
         {selectedDocument?.url ? (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
-            {fileItems.length > 1 && (
+            {processedFiles.length > 1 && (
               <div className="flex gap-2 p-3 bg-slate-100 border-b border-slate-200 overflow-x-auto">
-                {fileItems.map((file, idx) => (
+                {processedFiles.map((file, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedFileIndex(idx)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
                       selectedFileIndex === idx
                         ? 'bg-blue-600 text-white shadow-md'
                         : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-300'
                     }`}
                   >
+                    {file.type === 'pdf' && <FileText className="w-4 h-4" />}
+                    {file.type === 'image' && <Award className="w-4 h-4" />}
+                    {file.type === 'jotform' && <ExternalLink className="w-4 h-4" />}
                     Arquivo {idx + 1}
                   </button>
                 ))}
               </div>
             )}
-            {fileType === 'jotform' ? (
+            {fileType === 'jotform' && !currentFile?.isViewable ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8 bg-gradient-to-br from-blue-50 to-slate-50">
                 <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
                     <ExternalLink className="w-10 h-10 text-blue-600" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedDocument.label}</h3>
-                  <p className="text-slate-600 mb-6">
-                    Clique no botão abaixo para visualizar o documento em uma nova aba.
+                  <p className="text-slate-600 mb-2 text-sm">
+                    Link de submissão do Jotform
+                  </p>
+                  <p className="text-slate-500 mb-6 text-xs">
+                    Este é um link para a página de submissão. Clique para abrir em nova aba.
                   </p>
                   <a
-                    href={currentUrl}
+                    href={currentFile?.displayUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-3 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
                   >
                     <ExternalLink className="w-5 h-5" />
-                    Visualizar documento
+                    Abrir submissão
                   </a>
                 </div>
               </div>
             ) : fileType === 'pdf' ? (
               <iframe
-                src={`${currentUrl}#view=FitH`}
+                src={`${currentFile?.displayUrl}#view=FitH`}
                 className="w-full h-full"
                 title={selectedDocument.label}
                 style={{
@@ -213,7 +189,7 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
             ) : fileType === 'image' ? (
               <div className="flex items-center justify-center h-full p-4 bg-slate-100">
                 <img
-                  src={currentUrl}
+                  src={currentFile?.displayUrl}
                   alt={selectedDocument.label}
                   className="max-w-full max-h-full object-contain"
                   style={{
@@ -240,15 +216,25 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
               <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8">
                 <AlertCircle className="w-16 h-16 mb-4 text-slate-400" />
                 <p className="text-center mb-4">Formato de arquivo não suportado para visualização</p>
-                <a
-                  href={currentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Abrir em nova aba
-                </a>
+                <div className="flex gap-3">
+                  <a
+                    href={currentFile?.displayUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir em nova aba
+                  </a>
+                  <a
+                    href={currentFile?.url}
+                    download
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Baixar arquivo
+                  </a>
+                </div>
               </div>
             )}
           </div>
