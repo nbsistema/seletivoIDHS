@@ -74,15 +74,28 @@ export async function fetchCandidates(): Promise<Candidate[]> {
   }
 
   try {
-    const range = 'A:Z';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+    // Tenta primeiro buscar da aba "Respostas ao formulário 1" (nome padrão do Google Forms)
+    let range = 'Respostas ao formulário 1!A:Z';
+    let url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
 
     console.log('Fetching candidates from Google Sheets...');
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${cachedAccessToken}`,
       },
     });
+
+    // Se não encontrar, tenta a primeira aba sem nome específico
+    if (!response.ok && response.status === 400) {
+      console.log('Trying default sheet range...');
+      range = 'A:Z';
+      url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+      response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${cachedAccessToken}`,
+        },
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -178,14 +191,26 @@ export async function updateCandidateStatus(
   }
 
   try {
-    const range = 'A:Z';
-    const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+    // Tenta primeiro buscar da aba "Respostas ao formulário 1"
+    let range = 'Respostas ao formulário 1!A:Z';
+    let readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
 
-    const readResponse = await fetch(readUrl, {
+    let readResponse = await fetch(readUrl, {
       headers: {
         'Authorization': `Bearer ${cachedAccessToken}`,
       },
     });
+
+    // Se não encontrar, tenta a primeira aba sem nome específico
+    if (!readResponse.ok && readResponse.status === 400) {
+      range = 'A:Z';
+      readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`;
+      readResponse = await fetch(readUrl, {
+        headers: {
+          'Authorization': `Bearer ${cachedAccessToken}`,
+        },
+      });
+    }
     if (!readResponse.ok) {
       throw new Error(`Failed to read sheet: ${readResponse.statusText}`);
     }
@@ -219,7 +244,9 @@ export async function updateCandidateStatus(
       minute: '2-digit'
     });
 
-    const updateRange = `Q${rowIndex}:S${rowIndex}`;
+    // Usa o mesmo range que foi usado para ler (com ou sem nome da aba)
+    const sheetPrefix = range.includes('!') ? range.split('!')[0] + '!' : '';
+    const updateRange = `${sheetPrefix}Q${rowIndex}:S${rowIndex}`;
     const values = [[status, now, analystEmail]];
 
     const success = await updateSheet(updateRange, values);
