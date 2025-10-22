@@ -4,6 +4,11 @@ import Dashboard from './components/Dashboard';
 import { setAccessToken } from './services/googleSheets';
 import { createSession, endSession } from './services/sessionService';
 
+
+const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID;
+const API_KEY  = import.meta.env.VITE_GOOGLE_API_KEY;
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 function App() {
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
