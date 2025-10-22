@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { SessionMetrics } from '../types/candidate';
-import { TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, User } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, User, RefreshCw } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
-import { useAuth } from '../contexts/AuthContext'; // Supondo que você tem um contexto de autenticação
 
 interface MetricsPanelProps {
-  sessionMetrics?: SessionMetrics; // Métricas da sessão atual (opcional)
-  showHistorical?: boolean; // Se deve mostrar dados históricos
+  sessionMetrics?: SessionMetrics;
+  showHistorical?: boolean;
+  userEmail?: string; // Recebe o email como prop
 }
 
 interface HistoricalMetrics {
@@ -17,7 +17,11 @@ interface HistoricalMetrics {
   averageTimePerCandidate: number;
 }
 
-export default function MetricsPanel({ sessionMetrics, showHistorical = true }: MetricsPanelProps) {
+export default function MetricsPanel({ 
+  sessionMetrics, 
+  showHistorical = true,
+  userEmail 
+}: MetricsPanelProps) {
   const [historicalMetrics, setHistoricalMetrics] = useState<HistoricalMetrics>({
     totalReviewed: 0,
     classified: 0,
@@ -26,24 +30,23 @@ export default function MetricsPanel({ sessionMetrics, showHistorical = true }: 
     averageTimePerCandidate: 0
   });
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   const metrics = showHistorical ? historicalMetrics : sessionMetrics;
 
   useEffect(() => {
-    if (showHistorical && user) {
+    if (showHistorical && userEmail) {
       loadHistoricalMetrics();
     }
-  }, [showHistorical, user]);
+  }, [showHistorical, userEmail]);
 
   const loadHistoricalMetrics = async () => {
     try {
       setLoading(true);
-      const candidates = await candidateService.getCandidates();
+      const candidates = await candidateService.getCandidates(1, 1000); // Busca todos
       
-      // Filtra apenas os candidatos avaliados pelo usuário logado
+      // Filtra apenas os candidatos avaliados pelo usuário
       const userCandidates = candidates.data.filter(candidate => 
-        candidate.analista_triagem === user?.email
+        candidate.analista_triagem === userEmail
       );
 
       const classified = userCandidates.filter(c => c.status_triagem === 'Aprovado').length;
@@ -51,9 +54,9 @@ export default function MetricsPanel({ sessionMetrics, showHistorical = true }: 
       const review = userCandidates.filter(c => c.status_triagem === 'Revisar').length;
       const totalReviewed = classified + disqualified + review;
 
-      // Calcula tempo médio (simplificado - você pode ajustar com dados reais)
+      // Calcula tempo médio (exemplo - ajuste conforme seus dados)
       const averageTimePerCandidate = totalReviewed > 0 ? 
-        Math.round((8 * 60) / totalReviewed) : 0; // Exemplo: 8 minutos em média
+        Math.round((8 * 60) / totalReviewed) : 0;
 
       setHistoricalMetrics({
         totalReviewed,
@@ -103,8 +106,8 @@ export default function MetricsPanel({ sessionMetrics, showHistorical = true }: 
           <span className="font-semibold text-sm">
             {showHistorical ? 'Métricas do Usuário' : 'Métricas da Sessão'}
           </span>
-          {showHistorical && user && (
-            <span className="text-xs opacity-80 ml-2">({user.email})</span>
+          {showHistorical && userEmail && (
+            <span className="text-xs opacity-80 ml-2">({userEmail})</span>
           )}
         </div>
 
@@ -157,7 +160,7 @@ export default function MetricsPanel({ sessionMetrics, showHistorical = true }: 
               onClick={loadHistoricalMetrics}
               className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-3 py-1 text-xs font-medium transition-all"
             >
-              Atualizar
+              <RefreshCw className="w-3 h-3" />
             </button>
           )}
         </div>
