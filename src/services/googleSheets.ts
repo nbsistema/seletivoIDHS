@@ -1,6 +1,22 @@
 import { Candidate } from '../types/candidate';
 
-const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID;
+function extractSpreadsheetId(input: string | undefined): string | undefined {
+  if (!input) return undefined;
+
+  const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (match) {
+    return match[1];
+  }
+
+  if (input.includes('/') || input.includes('?') || input.includes('edit') || input.includes('sharing')) {
+    console.error('Invalid SPREADSHEET_ID format. Use only the ID, not the full URL.');
+    return undefined;
+  }
+
+  return input;
+}
+
+const SPREADSHEET_ID = extractSpreadsheetId(import.meta.env.VITE_GOOGLE_SHEETS_ID);
 
 let cachedAccessToken: string | null = null;
 
@@ -45,8 +61,11 @@ async function updateSheet(range: string, values: any[][]): Promise<boolean> {
 
 export async function fetchCandidates(): Promise<Candidate[]> {
   if (!SPREADSHEET_ID || SPREADSHEET_ID === 'your_spreadsheet_id_here') {
-    console.warn('Google Sheets ID not configured. Please set VITE_GOOGLE_SHEETS_ID in .env');
-    return [];
+    console.error('Google Sheets ID not configured correctly.');
+    console.error('IMPORTANT: Use only the spreadsheet ID, not the full URL.');
+    console.error('Example: 1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw');
+    console.error('NOT: https://docs.google.com/spreadsheets/d/1NaetcGUJ5.../edit?usp=sharing');
+    throw new Error('Configure o ID da planilha corretamente. Use apenas o ID, não a URL completa.');
   }
 
   if (!cachedAccessToken) {

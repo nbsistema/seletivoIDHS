@@ -60,9 +60,19 @@ Este é um requisito do Google OAuth 2.0 para implicit flow com `response_type=t
 ## Passo 4: Obter ID da Planilha
 
 1. Abra sua planilha do Google Sheets
-2. Na URL, copie o ID da planilha:
-   - URL: `https://docs.google.com/spreadsheets/d/ID_DA_PLANILHA/edit`
-   - Copie apenas o `ID_DA_PLANILHA`
+2. Na URL, copie **APENAS o ID** da planilha (não a URL completa):
+
+   URL completa:
+   ```
+   https://docs.google.com/spreadsheets/d/1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw/edit?usp=sharing
+   ```
+
+   **Copie apenas esta parte:**
+   ```
+   1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw
+   ```
+
+   ⚠️ **IMPORTANTE**: NÃO inclua `/edit`, `?usp=sharing` ou qualquer outra parte da URL
 
 ## Passo 5: Configurar Variáveis de Ambiente no Netlify
 
@@ -71,11 +81,15 @@ Este é um requisito do Google OAuth 2.0 para implicit flow com `response_type=t
 3. Adicione as seguintes variáveis:
 
 ```
-VITE_GOOGLE_SHEETS_ID=ID_DA_SUA_PLANILHA
+VITE_GOOGLE_SHEETS_ID=1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw
 VITE_GOOGLE_CLIENT_ID=7946337108-ugfh3hq2goea4ujd12ronkh1u1cmjpbm.apps.googleusercontent.com
 ```
 
-**IMPORTANTE**: Não é mais necessária a API Key (VITE_GOOGLE_API_KEY). O sistema agora usa apenas OAuth para todas as operações.
+⚠️ **ATENÇÃO**:
+- Use **APENAS o ID** da planilha em `VITE_GOOGLE_SHEETS_ID`
+- **NÃO** use a URL completa com `/edit?usp=sharing`
+- Não é mais necessária a API Key (VITE_GOOGLE_API_KEY)
+- O sistema usa apenas OAuth para todas as operações
 
 4. Clique em "Save"
 5. Faça um novo deploy do site
