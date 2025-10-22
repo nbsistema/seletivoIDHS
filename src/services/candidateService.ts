@@ -1,4 +1,10 @@
-import { supabase, Candidate, RejectionReasonTemplate, PaginatedResponse } from './supabaseClient';
+// services/candidateService.ts
+import { Candidate, PaginatedResponse } from './types';
+
+// Configuração da API do Google Sheets
+const SPREADSHEET_ID = '1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw';
+const SHEET_NAME = 'Form responses'; // ou o nome da sua planilha
+
 
 export const candidateService = {
   async getCandidates(
@@ -12,74 +18,154 @@ export const candidateService = {
       assignedTo?: string;
     }
   ): Promise<PaginatedResponse<Candidate>> {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from('candidates')
-      .select('*', { count: 'exact' })
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: true })
-      .range(from, to);
-
-    if (filters?.status) {
-      if (filters.status === 'pending') {
-        query = query.or('status_triagem.is.null,status_triagem.eq.');
-      } else {
-        query = query.eq('status_triagem', filters.status);
+    try {
+      // Busca todos os dados da planilha
+      const allCandidates = await this.loadFromSpreadsheet();
+      
+      // Aplica filtros
+      let filteredCandidates = allCandidates;
+      
+      if (filters?.status) {
+        if (filters.status === 'pending') {
+          filteredCandidates = filteredCandidates.filter(c => 
+            !c.status_triagem || c.status_triagem === ''
+          );
+        } else {
+          filteredCandidates = filteredCandidates.filter(c => 
+            c.status_triagem === filters.status
+          );
+        }
       }
+
+      if (filters?.area) {
+        filteredCandidates = filteredCandidates.filter(c => 
+          c.area === filters.area
+        );
+      }
+
+      if (filters?.flagged !== undefined) {
+        filteredCandidates = filteredCandidates.filter(c => 
+          c.flagged === filters.flagged
+        );
+      }
+
+      if (filters?.search) {
+        const searchLower = filters.search.toLowerCase();
+        filteredCandidates = filteredCandidates.filter(c => 
+          c.name?.toLowerCase().includes(searchLower) ||
+          c.registration_number?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      if (filters?.assignedTo) {
+        filteredCandidates = filteredCandidates.filter(c => 
+          c.assigned_to === filters.assignedTo
+        );
+      }
+
+      // Paginação
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize;
+      const paginatedData = filteredCandidates.slice(from, to);
+
+      return {
+        data: paginatedData,
+        count: filteredCandidates.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(filteredCandidates.length / pageSize)
+      };
+    } catch (error) {
+      console.error('Erro ao buscar candidatos:', error);
+      throw error;
     }
-
-    if (filters?.area) {
-      query = query.eq('area', filters.area);
-    }
-
-    if (filters?.flagged !== undefined) {
-      query = query.eq('flagged', filters.flagged);
-    }
-
-    if (filters?.search) {
-      query = query.or(`name.ilike.%${filters.search}%,registration_number.ilike.%${filters.search}%`);
-    }
-
-    if (filters?.assignedTo) {
-      query = query.eq('assigned_to', filters.assignedTo);
-    }
-
-    const { data, error, count } = await query;
-
-    if (error) throw error;
-
-    return {
-      data: data || [],
-      count: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
-  async getNextUnassignedBatch(analystEmail: string, batchSize: number = 10): Promise<Candidate[]> {
-    const { data, error } = await supabase
-      .from('candidates')
-      .select('*')
-      .or('status_triagem.is.null,status_triagem.eq.')
-      .is('assigned_to', null)
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(batchSize);
+  async loadFromSpreadsheet(): Promise<Candidate[]> {
+    try {
+      // URL da API do Google Sheets
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
 
-    if (error) throw error;
+      if (!data.values) {
+        return [];
+      }
 
-    if (data && data.length > 0) {
-      const ids = data.map(c => c.id);
-      await supabase
-        .from('candidates')
-        .update({ assigned_to: analystEmail })
-        .in('id', ids);
+      // Converte os dados da planilha para objetos Candidate
+      const headers = data.values[0]; // Primeira linha são os cabeçalhos
+      const rows = data.values.slice(1); // Restante são os dados
+
+      return rows.map((row: any[], index: number) => {
+        const candidate: any = {};
+        headers.forEach((header: string, colIndex: number) => {
+          const key = this.mapHeaderToKey(header);
+          candidate[key] = row[colIndex] || '';
+        });
+        
+        // Garante que tenha um ID único
+        candidate.id = candidate.id || `candidate-${index}`;
+        
+        // Converte valores booleanos
+        if (candidate.flagged === 'TRUE' || candidate.flagged === 'true') {
+          candidate.flagged = true;
+        } else {
+          candidate.flagged = false;
+        }
+
+        return candidate as Candidate;
+      });
+    } catch (error) {
+      console.error('Erro ao carregar dados do Google Sheets:', error);
+      throw error;
     }
+  },
 
-    return data || [];
+  // Mapeia cabeçalhos da planilha para keys do objeto Candidate
+  mapHeaderToKey(header: string): string {
+    const mapping: { [key: string]: string } = {
+      'ID': 'id',
+      'Número de Inscrição': 'registration_number',
+      'Nome': 'name',
+      'Área': 'area',
+      'Status Triagem': 'status_triagem',
+      'Data/Hora Triagem': 'data_hora_triagem',
+      'Analista Triagem': 'analista_triagem',
+      'Motivos de Rejeição': 'rejection_reasons',
+      'Observações': 'notes',
+      'Prioridade': 'priority',
+      'Marcado': 'flagged',
+      'Atribuído a': 'assigned_to',
+      'Criado em': 'created_at',
+      'Atualizado em': 'updated_at'
+    };
+
+    return mapping[header] || header.toLowerCase();
+  },
+
+  async getStatistics(analystEmail?: string) {
+    try {
+      const allCandidates = await this.loadFromSpreadsheet();
+      
+      let filteredCandidates = allCandidates;
+      if (analystEmail) {
+        filteredCandidates = filteredCandidates.filter(c => c.assigned_to === analystEmail);
+      }
+
+      return {
+        total: filteredCandidates.length,
+        approved: filteredCandidates.filter(c => c.status_triagem === 'Aprovado').length,
+        rejected: filteredCandidates.filter(c => c.status_triagem === 'Reprovado').length,
+        revisar: filteredCandidates.filter(c => c.status_triagem === 'Revisar').length,
+        pending: filteredCandidates.filter(c => 
+          !c.status_triagem || c.status_triagem === '' || c.status_triagem === 'pending'
+        ).length
+      };
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+      throw error;
+    }
   },
 
   async updateCandidateStatus(
@@ -89,69 +175,101 @@ export const candidateService = {
     rejectionReasons: string[] = [],
     notes: string = ''
   ): Promise<void> {
-    const { error } = await supabase
-      .from('candidates')
-      .update({
+    try {
+      // Para atualizar no Google Sheets, você precisaria da API de escrita
+      // Esta é uma implementação simplificada - você precisará adaptar para sua API
+      console.log('Atualizando candidato:', {
+        registrationNumber,
+        status,
+        analystEmail,
+        rejectionReasons,
+        notes
+      });
+
+      // Aqui você implementaria a chamada para atualizar a planilha
+      // usando Google Apps Script ou API de escrita do Google Sheets
+      await this.updateSheetRow(registrationNumber, {
         status_triagem: status,
         data_hora_triagem: new Date().toISOString(),
         analista_triagem: analystEmail,
-        rejection_reasons: rejectionReasons,
+        rejection_reasons: rejectionReasons.join(', '),
         notes: notes,
         updated_at: new Date().toISOString()
-      })
-      .eq('registration_number', registrationNumber);
+      });
 
-    if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao atualizar status do candidato:', error);
+      throw error;
+    }
+  },
+
+  async updateSheetRow(registrationNumber: string, updates: any): Promise<void> {
+    // Implemente a lógica para atualizar a linha na planilha
+    // Isso pode ser feito via Google Apps Script ou API de escrita do Google Sheets
+    // Exemplo simplificado:
+    const scriptUrl = 'SUA_URL_DO_GOOGLE_APPS_SCRIPT_AQUI';
+    
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'updateCandidate',
+        registrationNumber,
+        updates
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao atualizar planilha');
+    }
   },
 
   async flagCandidate(registrationNumber: string, flagged: boolean): Promise<void> {
-    const { error } = await supabase
-      .from('candidates')
-      .update({
+    try {
+      await this.updateSheetRow(registrationNumber, {
         flagged: flagged,
         updated_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Erro ao marcar candidato:', error);
+      throw error;
+    }
+  },
+
+  async getNextUnassignedBatch(analystEmail: string, batchSize: number = 10): Promise<Candidate[]> {
+    const allCandidates = await this.loadFromSpreadsheet();
+    
+    const unassigned = allCandidates
+      .filter(c => !c.status_triagem || c.status_triagem === '')
+      .filter(c => !c.assigned_to)
+      .sort((a, b) => {
+        // Ordena por prioridade (maior primeiro) e depois por data de criação
+        if (b.priority !== a.priority) {
+          return (b.priority || 0) - (a.priority || 0);
+        }
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
       })
-      .eq('registration_number', registrationNumber);
+      .slice(0, batchSize);
 
-    if (error) throw error;
-  },
-
-  async getRejectionReasons(): Promise<RejectionReasonTemplate[]> {
-    const { data, error } = await supabase
-      .from('rejection_reason_templates')
-      .select('*')
-      .eq('active', true)
-      .order('order_index', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
-  },
-
-  async getStatistics(analystEmail?: string) {
-    let totalQuery = supabase.from('candidates').select('*', { count: 'exact', head: true });
-    let approvedQuery = supabase.from('candidates').select('*', { count: 'exact', head: true }).eq('status_triagem', 'Aprovado');
-    let rejectedQuery = supabase.from('candidates').select('*', { count: 'exact', head: true }).eq('status_triagem', 'Reprovado');
-    let pendingQuery = supabase.from('candidates').select('*', { count: 'exact', head: true }).or('status_triagem.is.null,status_triagem.eq.');
-
-    if (analystEmail) {
-      totalQuery = totalQuery.eq('assigned_to', analystEmail);
-      approvedQuery = approvedQuery.eq('assigned_to', analystEmail);
-      rejectedQuery = rejectedQuery.eq('assigned_to', analystEmail);
-      pendingQuery = pendingQuery.eq('assigned_to', analystEmail);
+    // Atualiza a planilha atribuindo os candidatos
+    for (const candidate of unassigned) {
+      await this.updateSheetRow(candidate.registration_number, {
+        assigned_to: analystEmail
+      });
     }
 
-    const [total, approved, rejected, pending] = await Promise.all([
-      totalQuery,
-      approvedQuery,
-      rejectedQuery,
-      pendingQuery
-    ]);
+    return unassigned;
+  },
 
-    return {
-      total: total.count || 0,
-      approved: approved.count || 0,
-      rejected: rejected.count || 0,
-      pending: pending.count || 0
-    };
+  async getRejectionReasons(): Promise<any[]> {
+    // Você pode ter uma aba separada para os motivos de rejeição
+    // Implemente conforme sua estrutura
+    return [
+      { id: 1, reason: 'Documentação incompleta', active: true, order_index: 1 },
+      { id: 2, reason: 'Fora do perfil', active: true, order_index: 2 },
+      { id: 3, reason: 'Experiência insuficiente', active: true, order_index: 3 }
+    ];
   }
 };
