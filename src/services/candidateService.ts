@@ -4,6 +4,7 @@ import { Candidate, PaginatedResponse } from './types';
 // Configuração da API do Google Sheets
 const SPREADSHEET_ID = '1NaetcGUJ5_HYsQ-NCK3V3zFEnDfyfwmjX4wrUwI7NFw';
 const SHEET_NAME = 'Form responses'; // ou o nome da sua planilha
+const API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY || '';
 
 
 export const candidateService = {
@@ -144,7 +145,7 @@ export const candidateService = {
     return mapping[header] || header.toLowerCase();
   },
 
- async getStatistics(analystEmail?: string) {
+  async getStatistics(analystEmail?: string) {
   try {
     const allCandidates = await this.loadFromSpreadsheet();
     
@@ -166,7 +167,7 @@ export const candidateService = {
     console.error('Erro ao carregar estatísticas:', error);
     throw error;
   }
-}
+  },
 
   async updateCandidateStatus(
     registrationNumber: string,
