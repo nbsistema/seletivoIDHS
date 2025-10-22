@@ -84,35 +84,6 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
 
   const fileType = getFileType(selectedDocument?.url);
 
-  useEffect(() => {
-    if (fileType === 'jotform' && selectedDocument?.url) {
-      const jotformId = extractJotformId(selectedDocument.url);
-      if (jotformId) {
-        const scriptId = 'jotform-embed-handler';
-        let existingScript = document.getElementById(scriptId);
-
-        const initializeHandler = () => {
-          if ((window as any).jotformEmbedHandler) {
-            (window as any).jotformEmbedHandler(
-              `iframe[id='JotFormIFrame-${jotformId}']`,
-              "https://form.jotform.com/"
-            );
-          }
-        };
-
-        if (!existingScript) {
-          const script = document.createElement('script');
-          script.id = scriptId;
-          script.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
-          script.async = true;
-          script.onload = initializeHandler;
-          document.body.appendChild(script);
-        } else {
-          initializeHandler();
-        }
-      }
-    }
-  }, [fileType, selectedDocument?.url]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -169,24 +140,26 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
         {selectedDocument?.url ? (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
             {fileType === 'jotform' ? (
-              <iframe
-                id={`JotFormIFrame-${extractJotformId(selectedDocument.url)}`}
-                title={selectedDocument.label}
-                onLoad={() => {
-                  if (window.parent) window.parent.scrollTo(0, 0);
-                }}
-                allowTransparency={true}
-                allow="geolocation; microphone; camera; fullscreen; payment"
-                src={selectedDocument.url}
-                className="w-full h-full"
-                style={{
-                  minWidth: '100%',
-                  maxWidth: '100%',
-                  height: '100%',
-                  minHeight: '539px',
-                  border: 'none'
-                }}
-              />
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8 bg-gradient-to-br from-blue-50 to-slate-50">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
+                    <ExternalLink className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">{selectedDocument.label}</h3>
+                  <p className="text-slate-600 mb-6">
+                    Clique no botão abaixo para visualizar o documento em uma nova aba.
+                  </p>
+                  <a
+                    href={selectedDocument.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    Visualizar documento
+                  </a>
+                </div>
+              </div>
             ) : fileType === 'pdf' ? (
               <iframe
                 src={`${selectedDocument.url}#view=FitH`}
