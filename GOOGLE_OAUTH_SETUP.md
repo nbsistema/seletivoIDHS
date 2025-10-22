@@ -1,5 +1,26 @@
 # Configuração do Google OAuth para o Sistema de Triagem
 
+## ⚠️ SOLUÇÃO RÁPIDA - Erro de OAuth
+
+Se você está vendo o erro "Não é possível fazer login no app porque ele não obedece à política do OAuth 2.0 do Google":
+
+1. Acesse: https://console.cloud.google.com/apis/credentials
+2. Clique no Client ID: `7946337108-ugfh3hq2goea4ujd12ronkh1u1cmjpbm`
+3. Em **"Authorized redirect URIs"**, adicione:
+   ```
+   https://seletivo.netlify.app/
+   ```
+   ⚠️ **IMPORTANTE**: A barra `/` no final é obrigatória!
+4. Em **"Authorized JavaScript origins"**, adicione:
+   ```
+   https://seletivo.netlify.app
+   ```
+   ⚠️ Aqui NÃO tem barra no final
+5. Clique em **"SAVE"**
+6. Aguarde 5 minutos e tente novamente
+
+---
+
 ## Passo 1: Criar Projeto no Google Cloud Console
 
 1. Acesse: https://console.cloud.google.com/
