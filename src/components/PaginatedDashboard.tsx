@@ -171,7 +171,7 @@ export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }
         </div>
       </div>
 
-      <StatsPanel />
+      <StatsPanel analystEmail={analystEmail} />
       <FilterBar filters={filters} onFilterChange={setFilters} />
 
       <div className="bg-white border-b border-slate-200 px-6 py-3">

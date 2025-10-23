@@ -42,16 +42,11 @@ export default function MetricsPanel({
   const loadHistoricalMetrics = async () => {
     try {
       setLoading(true);
-      const candidates = await candidateService.getCandidates(1, 1000); // Busca todos
-      
-      // Filtra apenas os candidatos avaliados pelo usuário
-      const userCandidates = candidates.data.filter(candidate => 
-        candidate.analista_triagem === userEmail
-      );
+      const stats = await candidateService.getStatistics(userEmail);
 
-      const classified = userCandidates.filter(c => c.status_triagem === 'Aprovado').length;
-      const disqualified = userCandidates.filter(c => c.status_triagem === 'Reprovado').length;
-      const review = userCandidates.filter(c => c.status_triagem === 'Revisar').length;
+      const classified = stats.approved;
+      const disqualified = stats.rejected;
+      const review = stats.revisar;
       const totalReviewed = classified + disqualified + review;
 
       // Calcula tempo médio (exemplo - ajuste conforme seus dados)

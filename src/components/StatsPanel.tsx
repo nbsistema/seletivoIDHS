@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Clock, BarChart3, Eye, RefreshCw } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 
-export default function StatsPanel() {
+interface StatsPanelProps {
+  analystEmail?: string;
+  showOnlyAnalyst?: boolean;
+}
+
+export default function StatsPanel({ analystEmail, showOnlyAnalyst = false }: StatsPanelProps) {
   const [stats, setStats] = useState({
     total: 0,
     approved: 0,
@@ -14,12 +19,14 @@ export default function StatsPanel() {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [analystEmail, showOnlyAnalyst]);
 
   const loadStats = async () => {
     try {
       setLoading(true);
-      const data = await candidateService.getStatistics();
+      const data = await candidateService.getStatistics(
+        showOnlyAnalyst ? analystEmail : undefined
+      );
       setStats(data);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
@@ -53,6 +60,11 @@ export default function StatsPanel() {
 
   return (
     <div className="bg-white border-b border-slate-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-slate-800">
+          {showOnlyAnalyst ? `Estatísticas - ${analystEmail}` : 'Estatísticas Gerais'}
+        </h2>
+      </div>
       <div className="grid grid-cols-5 gap-4">
         {/* Total */}
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
@@ -114,16 +126,6 @@ export default function StatsPanel() {
           <p className="text-3xl font-bold text-amber-900">{stats.pending}</p>
           <p className="text-xs text-amber-700 mt-2">{getPercentage(stats.pending)}%</p>
         </div>
-      </div>
-
-      <div className="flex justify-end mt-3">
-        <button
-          onClick={loadStats}
-          className="flex items-center gap-2 px-3 py-1 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Atualizar
-        </button>
       </div>
     </div>
   );

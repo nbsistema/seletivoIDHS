@@ -61,6 +61,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           <option value="">Todos os status</option>
           <option value="Aprovado">Aprovados</option>
           <option value="Reprovado">Reprovados</option>
+          <option value="Revisar">Revisar</option>
         </select>
 
         <select
