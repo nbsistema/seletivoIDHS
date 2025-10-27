@@ -173,15 +173,29 @@ export const candidateService = {
   },
 
   async createCandidate(candidate: Omit<Candidate, 'id' | 'created_at' | 'updated_at'>): Promise<Candidate> {
+    const candidateData = candidate.data || {};
+
     const { data, error } = await supabase
       .from('candidates')
       .insert({
         registration_number: candidate.registration_number,
         name: candidate.name,
-        area: candidate.area,
+        cpf: candidateData.cpf || '',
+        area: candidate.area || '',
         status: candidate.status || 'pendente',
         priority: candidate.priority || 0,
-        data: candidate.data || {},
+        cargo_administrativo: candidateData.cargo_administrativo || '',
+        cargo_assistencial: candidateData.cargo_assistencial || '',
+        adm_curriculo: candidateData.adm_curriculo || '',
+        adm_diploma: candidateData.adm_diploma || '',
+        adm_documentos: candidateData.adm_documentos || '',
+        adm_cursos: candidateData.adm_cursos || '',
+        assist_curriculo: candidateData.assist_curriculo || '',
+        assist_diploma: candidateData.assist_diploma || '',
+        assist_carteira: candidateData.assist_carteira || '',
+        assist_cursos: candidateData.assist_cursos || '',
+        assist_documentos: candidateData.assist_documentos || '',
+        data: candidateData,
       })
       .select()
       .single();

@@ -86,13 +86,14 @@ export default function CsvImportTool() {
             row[header] = values[index]?.trim().replace(/^"|"$/g, '') || '';
           });
 
-          const registrationNumber = row['Número de Inscrição'] || row['registration_number'] || row['inscricao'] || row['inscrição'];
-          const name = row['Nome'] || row['name'] || row['nome'];
-          const area = row['Área'] || row['area'] || row['Area'];
+          const name = row['Nome Completo'] || row['Nome'] || row['name'] || row['nome'];
+          const cpf = row['CPF'] || row['cpf'];
+          const registrationNumber = row['NÚMERO DE INSCRIÇÃO'] || row['Número de Inscrição'] || row['registration_number'] || row['inscricao'] || row['inscrição'] || `temp-${Date.now()}-${i}`;
+          const area = row['Área de atuação pretendida'] || row['Área'] || row['area'] || row['Area'] || '';
 
-          if (!registrationNumber || !name || !area) {
+          if (!name || !cpf) {
             failed++;
-            errors.push(`Linha ${i + 1}: Campos obrigatórios faltando (inscrição, nome ou área)`);
+            errors.push(`Linha ${i + 1}: Campos obrigatórios faltando (Nome Completo e CPF)`);
             continue;
           }
 
@@ -102,7 +103,21 @@ export default function CsvImportTool() {
             area: area,
             status: 'pendente',
             priority: parseInt(row['priority'] || row['prioridade'] || '0'),
-            data: row,
+            data: {
+              cpf: cpf,
+              cargo_administrativo: row['Cargo pretendido (ADMINISTRATIVO)'] || '',
+              cargo_assistencial: row['Cargo pretendido (ASSISTENCIAL)'] || '',
+              adm_curriculo: row['ADM - CURRICULO'] || '',
+              adm_diploma: row['ADM - DIPLOMA OU CERTIFICADO DE ESCOLARIDADE'] || '',
+              adm_documentos: row['ADM - DOCUMENTOS PESSOAIS OBRIGATÓRIOS'] || '',
+              adm_cursos: row['ADM - CURSOS E ESPECIALIZAÇÕES'] || '',
+              assist_curriculo: row['ASSIST - CURRICULO VITAE'] || '',
+              assist_diploma: row['ASSIST - DIPLOMA OU CERTIFICADO DE ESCOLARIDADE'] || '',
+              assist_carteira: row['ASSIST - CARTEIRA DO CONSELHO'] || '',
+              assist_cursos: row['ASSIST - CURSOS E ESPECIALIZAÇÕES'] || '',
+              assist_documentos: row['ASSIST - DOCUMENTOS PESSOAIS OBRIGATÓRIOS'] || '',
+              ...row
+            },
           });
 
           success++;
@@ -158,10 +173,12 @@ export default function CsvImportTool() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <h3 className="font-semibold text-yellow-900 mb-2">Campos obrigatórios:</h3>
             <ul className="text-sm text-yellow-800 space-y-1">
-              <li><strong>Número de Inscrição</strong> (ou registration_number, inscrição, inscricao)</li>
-              <li><strong>Nome</strong> (ou name)</li>
-              <li><strong>Área</strong> (ou area)</li>
+              <li><strong>Nome Completo</strong></li>
+              <li><strong>CPF</strong></li>
             </ul>
+            <p className="text-xs text-yellow-700 mt-2">
+              Todos os outros campos são opcionais
+            </p>
           </div>
 
           {!file && (
