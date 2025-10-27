@@ -87,6 +87,7 @@ export default function CsvImportTool() {
           });
 
           const name = row['Nome Completo'] || row['Nome'] || row['name'] || row['nome'] || '';
+          const nomeSocial = row['Nome Social'] || row['nome_social'] || row['nomeSocial'] || '';
           const cpf = row['CPF'] || row['cpf'] || '';
           const registrationNumber = row['NÚMERO DE INSCRIÇÃO'] || row['Número de Inscrição'] || row['registration_number'] || row['inscricao'] || row['inscrição'] || `temp-${Date.now()}-${i}`;
           const area = row['Área de atuação pretendida'] || row['Área'] || row['area'] || row['Area'] || '';
@@ -99,6 +100,7 @@ export default function CsvImportTool() {
             priority: parseInt(row['priority'] || row['prioridade'] || '0'),
             data: {
               cpf: cpf,
+              nome_social: nomeSocial,
               cargo_administrativo: row['Cargo pretendido (ADMINISTRATIVO)'] || '',
               cargo_assistencial: row['Cargo pretendido (ASSISTENCIAL)'] || '',
               adm_curriculo: row['ADM - CURRICULO'] || '',

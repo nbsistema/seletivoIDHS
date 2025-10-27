@@ -180,6 +180,7 @@ export const candidateService = {
       .insert({
         registration_number: candidate.registration_number,
         name: candidate.name,
+        nome_social: candidateData.nome_social || '',
         cpf: candidateData.cpf || '',
         area: candidate.area || '',
         status: candidate.status || 'pendente',

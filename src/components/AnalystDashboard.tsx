@@ -91,7 +91,7 @@ export default function AnalystDashboard() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-y-auto">
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>

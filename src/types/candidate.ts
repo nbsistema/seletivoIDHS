@@ -2,6 +2,7 @@
 export interface Candidate {
   submissionDate: string;
   name: string;
+  nome_social?: string;
   cpf: string;
   area: 'Administrativa' | 'Assistencial';
   cargoAdministrativo: string;
