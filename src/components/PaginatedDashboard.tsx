@@ -7,6 +7,7 @@ import ScreeningPanel from './ScreeningPanel';
 import StatsPanel from './StatsPanel';
 import FilterBar from './FilterBar';
 import ImportTool from './ImportTool';
+import CandidateDetailView from './CandidateDetailView';
 
 interface DashboardProps {
   sessionId: string;
@@ -17,6 +18,7 @@ interface DashboardProps {
 export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }: DashboardProps) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [detailCandidate, setDetailCandidate] = useState<Candidate | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -125,6 +127,14 @@ export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }
   });
 
   return (
+    <>
+      {detailCandidate && (
+        <CandidateDetailView
+          candidate={detailCandidate}
+          onClose={() => setDetailCandidate(null)}
+        />
+      )}
+
     <div className="flex flex-col min-h-screen bg-slate-100 overflow-y-auto">
       <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -252,7 +262,8 @@ export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }
               {candidates.map((candidate) => (
                 <button
                   key={candidate.id}
-                  onClick={() => handleSelectCandidate(candidate)}
+                  onClick={() => setDetailCandidate(candidate)}
+                  onDoubleClick={() => handleSelectCandidate(candidate)}
                   className={`w-full text-left p-3 rounded-lg transition-all ${
                     selectedCandidate?.id === candidate.id
                       ? 'bg-blue-100 border-2 border-blue-500'
@@ -313,5 +324,6 @@ export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }
         />
       )}
     </div>
+    </>
   );
 }

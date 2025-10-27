@@ -8,11 +8,18 @@ interface ImportResult {
   errors: string[];
 }
 
+interface ImportProgress {
+  current: number;
+  total: number;
+  percentage: number;
+}
+
 export default function CsvImportTool() {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [preview, setPreview] = useState<any[]>([]);
+  const [progress, setProgress] = useState<ImportProgress>({ current: 0, total: 0, percentage: 0 });
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0];
@@ -77,6 +84,9 @@ export default function CsvImportTool() {
       let success = 0;
       let failed = 0;
       const errors: string[] = [];
+      const total = lines.length - 1;
+
+      setProgress({ current: 0, total, percentage: 0 });
 
       for (let i = 1; i < lines.length; i++) {
         try {
@@ -121,6 +131,10 @@ export default function CsvImportTool() {
           failed++;
           errors.push(`Linha ${i + 1}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
         }
+
+        const current = i;
+        const percentage = Math.round((current / total) * 100);
+        setProgress({ current, total, percentage });
       }
 
       setResult({ success, failed, errors });
@@ -248,6 +262,24 @@ export default function CsvImportTool() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {importing && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>Progresso da importação</span>
+                    <span>{progress.percentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-full transition-all duration-300 ease-out"
+                      style={{ width: `${progress.percentage}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600 text-center">
+                    {progress.current} de {progress.total} registros processados
+                  </p>
                 </div>
               )}
 

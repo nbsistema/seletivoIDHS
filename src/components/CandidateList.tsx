@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Candidate } from '../types/candidate';
 import { UserCheck, UserX, AlertTriangle, Clock } from 'lucide-react';
+import CandidateDetailView from './CandidateDetailView';
 
 interface CandidateListProps {
   candidates: Candidate[];
@@ -24,6 +26,8 @@ export default function CandidateList({
   onFilterCargoChange,
   onFilterStatusChange
 }: CandidateListProps) {
+  const [detailCandidate, setDetailCandidate] = useState<Candidate | null>(null);
+
   const filteredCandidates = candidates.filter(candidate => {
     const areaMatch = filterArea === 'all' || candidate.area === filterArea;
     const cargoMatch = filterCargo === 'all' ||
@@ -65,7 +69,19 @@ export default function CandidateList({
     }
   };
 
+  const handleCandidateClick = (candidate: Candidate) => {
+    setDetailCandidate(candidate);
+  };
+
   return (
+    <>
+      {detailCandidate && (
+        <CandidateDetailView
+          candidate={detailCandidate}
+          onClose={() => setDetailCandidate(null)}
+        />
+      )}
+
     <div className="flex flex-col h-full bg-white border-r border-slate-200">
       <div className="p-4 border-b border-slate-200 bg-slate-50">
         <h2 className="text-lg font-bold text-slate-800 mb-4">
@@ -127,7 +143,7 @@ export default function CandidateList({
         {filteredCandidates.map((candidate) => (
           <button
             key={candidate.registrationNumber}
-            onClick={() => onSelectCandidate(candidate)}
+            onClick={() => handleCandidateClick(candidate)}
             className={`w-full p-4 text-left border-b border-slate-200 hover:bg-blue-50 transition-colors ${
               selectedCandidate?.registrationNumber === candidate.registrationNumber
                 ? 'bg-blue-100 border-l-4 border-l-blue-600'
@@ -171,5 +187,6 @@ export default function CandidateList({
         )}
       </div>
     </div>
+    </>
   );
 }
