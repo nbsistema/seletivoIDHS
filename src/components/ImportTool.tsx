@@ -84,102 +84,100 @@ export default function DocumentViewer({ candidate, onFocusDocument }: DocumentV
         </div>
       </div>
 
-      {/* Área principal com rolagem vertical FIXADA */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4">
-          {selectedDocument?.url ? (
-            <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
-              <div className="p-6 flex-shrink-0">
-                <div className="flex items-center gap-3 mb-4">
-                  {selectedDocument.icon}
-                  <h3 className="text-xl font-bold text-slate-800">{selectedDocument.label}</h3>
-                </div>
+      {/* Área principal SIMPLIFICADA com rolagem */}
+      <div className="flex-1 p-4 overflow-hidden">
+        {selectedDocument?.url ? (
+          <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+            <div className="p-6 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-4">
+                {selectedDocument.icon}
+                <h3 className="text-xl font-bold text-slate-800">{selectedDocument.label}</h3>
               </div>
-              
-              {/* Container dos arquivos COM ROLAGEM VERTICAL FUNCIONAL */}
-              <div className="flex-1 overflow-y-auto px-6 pb-6">
-                <div className="space-y-3">
-                  {processedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-1">
-                          {file.type === 'pdf' && <FileText className="w-5 h-5 text-blue-600" />}
-                          {file.type === 'image' && <Award className="w-5 h-5 text-green-600" />}
-                          {file.type === 'jotform' && <ExternalLink className="w-5 h-5 text-purple-600" />}
-                          {file.type === 'unknown' && <FolderOpen className="w-5 h-5 text-slate-600" />}
+            </div>
+            
+            {/* Container dos arquivos COM ALTURA FIXA E ROLAGEM */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <div className="space-y-3">
+                {processedFiles.map((file, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {file.type === 'pdf' && <FileText className="w-5 h-5 text-blue-600" />}
+                        {file.type === 'image' && <Award className="w-5 h-5 text-green-600" />}
+                        {file.type === 'jotform' && <ExternalLink className="w-5 h-5 text-purple-600" />}
+                        {file.type === 'unknown' && <FolderOpen className="w-5 h-5 text-slate-600" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {processedFiles.length > 1 ? `Arquivo ${idx + 1}` : 'Link do documento'}
+                          </span>
+                          {file.type === 'pdf' && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">PDF</span>
+                          )}
+                          {file.type === 'image' && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Imagem</span>
+                          )}
+                          {file.type === 'jotform' && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">Jotform</span>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-semibold text-slate-700">
-                              {processedFiles.length > 1 ? `Arquivo ${idx + 1}` : 'Link do documento'}
-                            </span>
-                            {file.type === 'pdf' && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">PDF</span>
-                            )}
-                            {file.type === 'image' && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Imagem</span>
-                            )}
-                            {file.type === 'jotform' && (
-                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">Jotform</span>
-                            )}
-                          </div>
-                          <div className="bg-white p-3 rounded border border-slate-200 mb-3">
-                            <a
-                              href={file.displayUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all font-mono"
+                        <div className="bg-white p-3 rounded border border-slate-200 mb-3">
+                          <a
+                            href={file.displayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all font-mono"
+                          >
+                            {file.displayUrl}
+                          </a>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href={file.displayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Abrir link
+                          </a>
+                          {file.type !== 'jotform' && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(file.displayUrl);
+                                alert('Link copiado!');
+                              }}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-colors"
                             >
-                              {file.displayUrl}
-                            </a>
-                          </div>
-                          <div className="flex gap-2">
-                            <a
-                              href={file.displayUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              Abrir link
-                            </a>
-                            {file.type !== 'jotform' && (
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(file.displayUrl);
-                                  alert('Link copiado!');
-                                }}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-colors"
-                              >
-                                <FileText className="w-4 h-4" />
-                                Copiar link
-                              </button>
-                            )}
-                          </div>
+                              <FileText className="w-4 h-4" />
+                              Copiar link
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {processedFiles.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <AlertCircle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>Nenhum link encontrado</p>
                   </div>
-                )}
+                ))}
               </div>
+
+              {processedFiles.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <p>Nenhum link encontrado</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full bg-white rounded-lg shadow-lg py-12">
-              <FolderOpen className="w-16 h-16 text-slate-300 mb-4" />
-              <p className="text-slate-500">Nenhum documento disponível</p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full bg-white rounded-lg shadow-lg py-12">
+            <FolderOpen className="w-16 h-16 text-slate-300 mb-4" />
+            <p className="text-slate-500">Nenhum documento disponível</p>
+          </div>
+        )}
       </div>
     </div>
   );
