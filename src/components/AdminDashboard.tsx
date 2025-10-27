@@ -3,11 +3,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { candidateService } from '../services/candidateService';
 import AssignmentPanel from './AssignmentPanel';
 import AnalystDashboard from './AnalystDashboard';
-import { BarChart3, Users } from 'lucide-react';
+import CsvImportTool from './CsvImportTool';
+import { BarChart3, Users, Upload } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'allocation' | 'my-candidates'>('allocation');
+  const [activeTab, setActiveTab] = useState<'allocation' | 'my-candidates' | 'import'>('allocation');
   const [stats, setStats] = useState({
     total: 0,
     pendente: 0,
@@ -68,6 +69,17 @@ export default function AdminDashboard() {
         <div className="px-6 border-t">
           <div className="flex gap-2">
             <button
+              onClick={() => setActiveTab('import')}
+              className={`px-4 py-3 font-medium flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === 'import'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              Importar
+            </button>
+            <button
               onClick={() => setActiveTab('allocation')}
               className={`px-4 py-3 font-medium flex items-center gap-2 border-b-2 transition-colors ${
                 activeTab === 'allocation'
@@ -94,14 +106,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {activeTab === 'allocation' ? (
+        {activeTab === 'import' && <CsvImportTool />}
+        {activeTab === 'allocation' && (
           <AssignmentPanel
             adminId={user?.id || ''}
             onAssignmentComplete={loadStats}
           />
-        ) : (
-          <AnalystDashboard />
         )}
+        {activeTab === 'my-candidates' && <AnalystDashboard />}
       </div>
     </div>
   );
