@@ -106,7 +106,7 @@ export default function PaginatedDashboard({ sessionId, analystEmail, onLogout }
     registrationNumber: c.registration_number,
     submissionDate: c.submission_date,
     name: c.name,
-    phone: c.phone,
+    cpf: c.cpf,
     area: c.area,
     cargoAdministrativo: c.cargo_administrativo,
     cargoAssistencial: c.cargo_assistencial,

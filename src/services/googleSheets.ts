@@ -178,7 +178,7 @@ export async function fetchCandidates(): Promise<Candidate[]> {
       const candidate: Candidate = {
         submissionDate: rowData[0],
         name: rowData[1]?.trim() || '',
-        phone: rowData[2],
+        cpf: rowData[2],
         area: (rowData[3] as 'Administrativa' | 'Assistencial') || '',
         cargoAdministrativo: rowData[4],
         cargoAssistencial: rowData[5],

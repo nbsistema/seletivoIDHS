@@ -322,7 +322,7 @@ export function generateClassifiedReportHTML(candidates: Candidate[], analystEma
       <th>Nome</th>
       <th>Área</th>
       <th>Cargo</th>
-      <th>Telefone</th>
+      <th>CPF</th>
       <th>Nº Registro</th>
     </tr>
     ${classified
@@ -332,7 +332,7 @@ export function generateClassifiedReportHTML(candidates: Candidate[], analystEma
       <td>${c.name}</td>
       <td>${c.area}</td>
       <td>${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial}</td>
-      <td>${c.phone || '-'}</td>
+      <td>${c.cpf || '-'}</td>
       <td>${c.registrationNumber}</td>
     </tr>
       `)
@@ -421,7 +421,7 @@ export function generateDisqualifiedReportHTML(candidates: Candidate[], analystE
       <th>Nome</th>
       <th>Área</th>
       <th>Cargo</th>
-      <th>Telefone</th>
+      <th>CPF</th>
       <th>Nº Registro</th>
     </tr>
     ${disqualified
@@ -431,7 +431,7 @@ export function generateDisqualifiedReportHTML(candidates: Candidate[], analystE
       <td>${c.name}</td>
       <td>${c.area}</td>
       <td>${c.area === 'Administrativa' ? c.cargoAdministrativo : c.cargoAssistencial}</td>
-      <td>${c.phone || '-'}</td>
+      <td>${c.cpf || '-'}</td>
       <td>${c.registrationNumber}</td>
     </tr>
       `)

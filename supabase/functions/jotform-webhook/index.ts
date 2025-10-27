@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
       registration_number: rawSubmission.submissionID,
       submission_date: rawSubmission.created_at,
       name: extractAnswer('nome') || extractText('nome'),
-      phone: extractAnswer('telefone') || extractText('telefone'),
+      cpf: extractAnswer('cpf') || extractText('cpf'),
       area: area,
       cargo_administrativo: area === 'Administrativa' ? (extractAnswer('cargo') || extractText('cargo')) : '',
       cargo_assistencial: area === 'Assistencial' ? (extractAnswer('cargo') || extractText('cargo')) : '',
