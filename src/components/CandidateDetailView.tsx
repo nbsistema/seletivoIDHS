@@ -62,26 +62,26 @@ export default function CandidateDetailView({ candidate, onClose }: CandidateDet
 
   const formatLabel = (key: string): string => {
     const labelMap: { [key: string]: string } = {
-      registration_number: 'Número de Inscrição',
-      name: 'Nome Completo',
-      nome_social: 'Nome Social',
+      registration_number: 'NÚMERO DE INSCRIÇÃO',
+      name: 'NOME COMPLETO',
+      nome_social: 'NOME SOCIAL',
       cpf: 'CPF',
-      area: 'Área de Atuação',
+      area: 'Área de atuação pretendida',
       status: 'Status',
       priority: 'Prioridade',
       assigned_to: 'Atribuído a',
       assigned_at: 'Data de Atribuição',
-      cargo_administrativo: 'Cargo Administrativo',
-      cargo_assistencial: 'Cargo Assistencial',
-      adm_curriculo: 'ADM - Currículo',
-      adm_diploma: 'ADM - Diploma',
-      adm_documentos: 'ADM - Documentos',
-      adm_cursos: 'ADM - Cursos',
-      assist_curriculo: 'ASSIST - Currículo',
-      assist_diploma: 'ASSIST - Diploma',
-      assist_carteira: 'ASSIST - Carteira',
-      assist_cursos: 'ASSIST - Cursos',
-      assist_documentos: 'ASSIST - Documentos',
+      cargo_administrativo: 'Cargo pretendido (ADMINISTRATIVO)',
+      cargo_assistencial: 'Cargo pretendido (ASSISTENCIAL)',
+      adm_curriculo: 'ADM - CURRICULO',
+      adm_diploma: 'ADM - DIPLOMA OU CERTIFICADO DE ESCOLARIDADE',
+      adm_documentos: 'ADM - DOCUMENTOS PESSOAIS OBRIGATÓRIOS',
+      adm_cursos: 'ADM - CURSOS E ESPECIALIZAÇÕES',
+      assist_curriculo: 'ASSIST - CURRICULO VITAE',
+      assist_diploma: 'ASSIST - DIPLOMA OU CERTIFICADO DE ESCOLARIDADE',
+      assist_carteira: 'ASSIST - CARTEIRA DO CONSELHO',
+      assist_cursos: 'ASSIST - CURSOS E ESPECIALIZAÇÕES',
+      assist_documentos: 'ASSIST - DOCUMENTOS PESSOAIS OBRIGATÓRIOS',
       submission_date: 'Data de Submissão',
       status_triagem: 'Status da Triagem',
       data_hora_triagem: 'Data/Hora da Triagem',
@@ -93,43 +93,34 @@ export default function CandidateDetailView({ candidate, onClose }: CandidateDet
     ).join(' ');
   };
 
-  const allFields = getNonEmptyFields(candidate);
+  const getFieldValue = (key: string): any => {
+    if (candidate[key] !== undefined && candidate[key] !== null && candidate[key] !== '') {
+      return candidate[key];
+    }
+    if (candidate.data && candidate.data[key] !== undefined && candidate.data[key] !== null && candidate.data[key] !== '') {
+      return candidate.data[key];
+    }
+    return null;
+  };
 
-  const personalFields = allFields.filter(f =>
-    ['name', 'nome_social', 'cpf', 'registration_number', 'area', 'submission_date'].includes(f.key.split('.').pop() || '')
-  );
+  const createOrderedFields = (keys: string[]) => {
+    return keys.map(key => ({
+      key,
+      label: formatLabel(key),
+      value: getFieldValue(key)
+    })).filter(field => field.value !== null);
+  };
 
-  const cargoFields = allFields.filter(f =>
-    ['cargo_administrativo', 'cargo_assistencial'].includes(f.key.split('.').pop() || '')
-  );
-
-  const admFields = allFields.filter(f =>
-    f.key.includes('adm_')
-  );
-
-  const assistFields = allFields.filter(f =>
-    f.key.includes('assist_')
-  );
-
-  const statusFields = allFields.filter(f =>
-    ['status', 'priority', 'assigned_to', 'assigned_at', 'status_triagem', 'data_hora_triagem', 'analista_triagem'].includes(f.key.split('.').pop() || '')
-  );
-
-  const otherFields = allFields.filter(f =>
-    !personalFields.includes(f) &&
-    !cargoFields.includes(f) &&
-    !admFields.includes(f) &&
-    !assistFields.includes(f) &&
-    !statusFields.includes(f)
-  );
+  const personalFields = createOrderedFields(['name', 'cpf', 'area', 'registration_number']);
+  const cargoFields = createOrderedFields(['cargo_administrativo', 'cargo_assistencial']);
+  const admFields = createOrderedFields(['adm_curriculo', 'adm_diploma', 'adm_documentos', 'adm_cursos']);
+  const assistFields = createOrderedFields(['assist_curriculo', 'assist_diploma', 'assist_carteira', 'assist_cursos', 'assist_documentos']);
 
   const tabs = [
     { id: 'info', label: 'Informações Pessoais', count: personalFields.length },
     { id: 'cargo', label: 'Cargo', count: cargoFields.length },
     { id: 'adm', label: 'Documentos ADM', count: admFields.length },
-    { id: 'assist', label: 'Documentos ASSIST', count: assistFields.length },
-    { id: 'status', label: 'Status', count: statusFields.length },
-    { id: 'other', label: 'Outros', count: otherFields.length }
+    { id: 'assist', label: 'Documentos ASSIST', count: assistFields.length }
   ].filter(tab => tab.count > 0);
 
   const getActiveFields = () => {
@@ -138,8 +129,6 @@ export default function CandidateDetailView({ candidate, onClose }: CandidateDet
       case 'cargo': return cargoFields;
       case 'adm': return admFields;
       case 'assist': return assistFields;
-      case 'status': return statusFields;
-      case 'other': return otherFields;
       default: return [];
     }
   };
