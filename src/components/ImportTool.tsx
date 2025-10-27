@@ -1,197 +1,184 @@
-import { useState } from 'react';
-import { Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { supabase } from '../services/supabaseClient';
+import { useState, useEffect } from 'react';
+import { Candidate } from '../types/candidate';
+import { processMultipleUrls } from '../services/jotformService';
+import {
+  FileText,
+  GraduationCap,
+  CreditCard,
+  Award,
+  FolderOpen,
+  ExternalLink,
+  AlertCircle
+} from 'lucide-react';
 
-interface ImportToolProps {
-  onImportComplete: () => void;
-  onClose: () => void;
+interface DocumentViewerProps {
+  candidate: Candidate;
+  onFocusDocument?: (docKey: string) => void;
 }
 
-export default function ImportTool({ onImportComplete, onClose }: ImportToolProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+interface Document {
+  key: string;
+  label: string;
+  url?: string;
+  icon: React.ReactNode;
+  isPrimary?: boolean;
+}
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setError(null);
-      setResult(null);
+export default function DocumentViewer({ candidate, onFocusDocument }: DocumentViewerProps) {
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+
+  const documents: Document[] = candidate.area === 'Administrativa'
+    ? [
+        { key: 'curriculo', label: 'Currículo', url: candidate.admCurriculo, icon: <FileText className="w-5 h-5" />, isPrimary: true },
+        { key: 'diploma', label: 'Diploma', url: candidate.admDiploma, icon: <GraduationCap className="w-5 h-5" />, isPrimary: true },
+        { key: 'documentos', label: 'Documentos Pessoais', url: candidate.admDocumentos, icon: <CreditCard className="w-5 h-5" /> },
+        { key: 'cursos', label: 'Cursos', url: candidate.admCursos, icon: <Award className="w-5 h-5" /> }
+      ]
+    : [
+        { key: 'curriculo', label: 'Currículo', url: candidate.assistCurriculo, icon: <FileText className="w-5 h-5" />, isPrimary: true },
+        { key: 'diploma', label: 'Diploma', url: candidate.assistDiploma, icon: <GraduationCap className="w-5 h-5" />, isPrimary: true },
+        { key: 'carteira', label: 'Carteira do Conselho', url: candidate.assistCarteira, icon: <CreditCard className="w-5 h-5" />, isPrimary: true },
+        { key: 'cursos', label: 'Cursos', url: candidate.assistCursos, icon: <Award className="w-5 h-5" /> },
+        { key: 'documentos', label: 'Documentos Pessoais', url: candidate.assistDocumentos, icon: <FolderOpen className="w-5 h-5" /> }
+      ];
+
+  const availableDocs = documents.filter(doc => doc.url);
+
+  useEffect(() => {
+    if (availableDocs.length > 0 && !selectedDoc) {
+      const firstPrimary = availableDocs.find(d => d.isPrimary);
+      setSelectedDoc(firstPrimary ? firstPrimary.key : availableDocs[0].key);
     }
+  }, [candidate.registrationNumber]);
+
+  const handleDocumentSelect = (docKey: string) => {
+    setSelectedDoc(docKey);
+    onFocusDocument?.(docKey);
   };
 
-  const parseCSV = (text: string): any[] => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return [];
-
-    const headers = lines[0].split('\t').map(h => h.trim());
-    const data = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split('\t');
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index]?.trim() || '';
-      });
-      data.push(row);
-    }
-
-    return data;
-  };
-
-  const mapToCandidate = (row: any) => {
-    const area = row['Área'] || row['Area'] || row['Cargo'] || '';
-    return {
-      registration_number: row['Número de Inscrição'] || row['ID de Envio'] || '',
-      submission_date: row['Data de Envio'] || '',
-      name: row['Nome Completo'] || row['Nome'] || '',
-      phone: row['Telefone'] || row['Celular'] || '',
-      area: area,
-      cargo_administrativo: area === 'Administrativa' ? (row['Cargo Administrativo'] || '') : '',
-      cargo_assistencial: area === 'Assistencial' ? (row['Cargo Assistencial'] || '') : '',
-      adm_curriculo: area === 'Administrativa' ? (row['Currículo (Administrativo)'] || '') : '',
-      adm_diploma: area === 'Administrativa' ? (row['Diploma (Administrativo)'] || '') : '',
-      adm_documentos: area === 'Administrativa' ? (row['Documentos Pessoais (Administrativo)'] || '') : '',
-      adm_cursos: area === 'Administrativa' ? (row['Cursos (Administrativo)'] || '') : '',
-      assist_curriculo: area === 'Assistencial' ? (row['Currículo (Assistencial)'] || '') : '',
-      assist_diploma: area === 'Assistencial' ? (row['Diploma (Assistencial)'] || '') : '',
-      assist_carteira: area === 'Assistencial' ? (row['Carteira do Conselho'] || '') : '',
-      assist_cursos: area === 'Assistencial' ? (row['Cursos (Assistencial)'] || '') : '',
-      assist_documentos: area === 'Assistencial' ? (row['Documentos Pessoais (Assistencial)'] || '') : '',
-      status_triagem: '',
-      data_hora_triagem: '',
-      analista_triagem: '',
-      rejection_reasons: [],
-      notes: '',
-      priority: 0,
-      flagged: false
-    };
-  };
-
-  const handleImport = async () => {
-    if (!file) {
-      setError('Selecione um arquivo primeiro');
-      return;
-    }
-
-    setImporting(true);
-    setError(null);
-
-    try {
-      const text = await file.text();
-      const rows = parseCSV(text);
-
-      if (rows.length === 0) {
-        throw new Error('Arquivo vazio ou formato inválido');
-      }
-
-      const candidates = rows
-        .map(mapToCandidate)
-        .filter(c => c.registration_number && c.name);
-
-      if (candidates.length === 0) {
-        throw new Error('Nenhum candidato válido encontrado no arquivo');
-      }
-
-      const { error: insertError } = await supabase
-        .from('candidates')
-        .upsert(candidates, { onConflict: 'registration_number' });
-
-      if (insertError) throw insertError;
-
-      setResult({
-        success: candidates.length,
-        errors: rows.length - candidates.length
-      });
-
-      setTimeout(() => {
-        onImportComplete();
-        onClose();
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao importar arquivo');
-    } finally {
-      setImporting(false);
-    }
-  };
+  const selectedDocument = availableDocs.find(d => d.key === selectedDoc);
+  const processedFiles = processMultipleUrls(selectedDocument?.url);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
-        <h2 className="text-2xl font-bold text-slate-800 mb-6">Importar Candidatos do Jotform</h2>
-
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-2">Instruções:</h3>
-          <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Acesse o Jotform e exporte as respostas em formato Excel (.xls ou .xlsx)</li>
-            <li>Abra o arquivo no Google Sheets</li>
-            <li>Selecione tudo (Ctrl+A) e copie (Ctrl+C)</li>
-            <li>Cole em um editor de texto e salve como .txt ou .csv</li>
-            <li>Faça upload do arquivo aqui</li>
-          </ol>
+    <div className="flex flex-col h-full bg-slate-50">
+      <div className="p-4 bg-white border-b border-slate-200">
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-slate-800">Documentos</h2>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Arquivo de dados
-          </label>
-          <div className="flex items-center gap-4">
-            <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all">
-              <Upload className="w-5 h-5 text-slate-400 mr-2" />
-              <span className="text-sm text-slate-600">
-                {file ? file.name : 'Selecionar arquivo'}
-              </span>
-              <input
-                type="file"
-                accept=".txt,.csv,.tsv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
-          </div>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {availableDocs.map((doc) => (
+            <button
+              key={doc.key}
+              onClick={() => handleDocumentSelect(doc.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all whitespace-nowrap ${
+                selectedDoc === doc.key
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400 hover:bg-blue-50'
+              } ${doc.isPrimary ? 'font-semibold' : ''}`}
+            >
+              {doc.icon}
+              <span className="text-sm">{doc.label}</span>
+            </button>
+          ))}
         </div>
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-900">Erro na importação</p>
-              <p className="text-sm text-red-700">{error}</p>
+      {/* Área principal com rolagem vertical */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="h-full overflow-y-auto p-4">
+          {selectedDocument?.url ? (
+            <div className="bg-white rounded-lg shadow-lg">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  {selectedDocument.icon}
+                  <h3 className="text-xl font-bold text-slate-800">{selectedDocument.label}</h3>
+                </div>
+
+                {/* Container dos arquivos com rolagem vertical se necessário */}
+                <div className="max-h-[60vh] overflow-y-auto">
+                  <div className="space-y-3 pr-2">
+                    {processedFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            {file.type === 'pdf' && <FileText className="w-5 h-5 text-blue-600" />}
+                            {file.type === 'image' && <Award className="w-5 h-5 text-green-600" />}
+                            {file.type === 'jotform' && <ExternalLink className="w-5 h-5 text-purple-600" />}
+                            {file.type === 'unknown' && <FolderOpen className="w-5 h-5 text-slate-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm font-semibold text-slate-700">
+                                {processedFiles.length > 1 ? `Arquivo ${idx + 1}` : 'Link do documento'}
+                              </span>
+                              {file.type === 'pdf' && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">PDF</span>
+                              )}
+                              {file.type === 'image' && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Imagem</span>
+                              )}
+                              {file.type === 'jotform' && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">Jotform</span>
+                              )}
+                            </div>
+                            <div className="bg-white p-3 rounded border border-slate-200 mb-3">
+                              <a
+                                href={file.displayUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all font-mono"
+                              >
+                                {file.displayUrl}
+                              </a>
+                            </div>
+                            <div className="flex gap-2">
+                              <a
+                                href={file.displayUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Abrir link
+                              </a>
+                              {file.type !== 'jotform' && (
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(file.displayUrl);
+                                    alert('Link copiado!');
+                                  }}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-colors"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Copiar link
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {processedFiles.length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p>Nenhum link encontrado</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-
-        {result && (
-          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200 flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-green-900">Importação concluída!</p>
-              <p className="text-sm text-green-700">
-                {result.success} candidatos importados com sucesso
-                {result.errors > 0 && ` • ${result.errors} linhas ignoradas`}
-              </p>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full bg-white rounded-lg shadow-lg py-12">
+              <FolderOpen className="w-16 h-16 text-slate-300 mb-4" />
+              <p className="text-slate-500">Nenhum documento disponível</p>
             </div>
-          </div>
-        )}
-
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            disabled={importing}
-            className="px-6 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleImport}
-            disabled={!file || importing}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {importing && <Loader2 className="w-4 h-4 animate-spin" />}
-            {importing ? 'Importando...' : 'Importar'}
-          </button>
+          )}
         </div>
       </div>
     </div>
