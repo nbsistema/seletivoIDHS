@@ -86,16 +86,10 @@ export default function CsvImportTool() {
             row[header] = values[index]?.trim().replace(/^"|"$/g, '') || '';
           });
 
-          const name = row['Nome Completo'] || row['Nome'] || row['name'] || row['nome'];
-          const cpf = row['CPF'] || row['cpf'];
+          const name = row['Nome Completo'] || row['Nome'] || row['name'] || row['nome'] || '';
+          const cpf = row['CPF'] || row['cpf'] || '';
           const registrationNumber = row['NÚMERO DE INSCRIÇÃO'] || row['Número de Inscrição'] || row['registration_number'] || row['inscricao'] || row['inscrição'] || `temp-${Date.now()}-${i}`;
           const area = row['Área de atuação pretendida'] || row['Área'] || row['area'] || row['Area'] || '';
-
-          if (!name || !cpf) {
-            failed++;
-            errors.push(`Linha ${i + 1}: Campos obrigatórios faltando (Nome Completo e CPF)`);
-            continue;
-          }
 
           await candidateService.createCandidate({
             registration_number: registrationNumber,
@@ -170,14 +164,10 @@ export default function CsvImportTool() {
             </ol>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="font-semibold text-yellow-900 mb-2">Campos obrigatórios:</h3>
-            <ul className="text-sm text-yellow-800 space-y-1">
-              <li><strong>Nome Completo</strong></li>
-              <li><strong>CPF</strong></li>
-            </ul>
-            <p className="text-xs text-yellow-700 mt-2">
-              Todos os outros campos são opcionais
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">Informação:</h3>
+            <p className="text-sm text-blue-800">
+              Todos os campos são opcionais. O sistema gerará automaticamente o número de inscrição se não fornecido.
             </p>
           </div>
 
